@@ -126,16 +126,93 @@ tr.title td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .flag{color:var(--muted);font-size:11px}
 .lmk{font:600 11px/1 var(--mono);color:var(--crim);letter-spacing:.04em}
 @media (max-width:520px){.otd{grid-template-columns:1fr}.otd .date{text-align:left}}
+
+/* ===== game-day layer: hero, sticky menu, ticker, motion ===== */
+.hero{position:relative;overflow:hidden;background:var(--board);color:var(--boardfg);isolation:isolate}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto;height:120%;z-index:-1;
+  background:radial-gradient(40% 55% at 18% 0%,rgba(255,240,200,.16),transparent 70%),radial-gradient(40% 55% at 82% 0%,rgba(255,240,200,.14),transparent 70%),radial-gradient(70% 60% at 50% 115%,rgba(158,27,50,.55),transparent 70%)}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.07;background:repeating-linear-gradient(90deg,#fff 0 2px,transparent 2px 12.5%)}
+.hero .wrap{padding-block:56px 40px;display:grid;gap:22px}
+.hero .label{color:#B9BFC1}
+.eyebrow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.live{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--boardfg);border:1px solid rgba(255,255,255,.22);padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.04)}
+.live i{width:8px;height:8px;border-radius:50%;background:#3BD16F;box-shadow:0 0 0 0 rgba(59,209,111,.6)}
+.hero h1{font-size:clamp(64px,15vw,168px);font-weight:900;text-transform:uppercase;line-height:.86;letter-spacing:-.015em}
+.hero h1 .l1,.hero h1 .l2{display:block}
+.hero h1 .l2{color:transparent;-webkit-text-stroke:2px var(--gold);background:linear-gradient(90deg,var(--gold),#F6D58C,var(--gold));-webkit-background-clip:text;background-clip:text;background-size:200% 100%}
+.hero p.lede{max-width:56ch;margin:0;color:#D3D7D8;font-size:18px}
+.hero .tally{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.12)}
+.hero .tally div{background:rgba(10,11,12,.72);backdrop-filter:blur(2px)}
+.hero .tally b{font-size:clamp(40px,6vw,56px);text-shadow:0 0 24px rgba(233,180,76,.35)}
+.cta{display:flex;flex-wrap:wrap;gap:10px}
+.cta a{font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:13px 18px;border-radius:2px;transition:transform .15s,background .15s}
+.cta a.p{background:#9E1B32;color:#fff}
+.cta a.s{border:1px solid rgba(255,255,255,.35);color:var(--boardfg)}
+.cta a:hover{transform:translateY(-2px)}
+.cta a.p:hover{background:#B8283F}
+.ticker{background:#9E1B32;color:#fff;overflow:hidden;white-space:nowrap;font:600 13px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.ticker .track{display:inline-flex;gap:48px;padding:13px 0;padding-left:100%}
+.ticker span b{color:#FFD98A;margin-right:8px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--board)}
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--board) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid #2A2E31}
+.topnav .wrap{display:flex;align-items:center;gap:18px;padding-block:0}
+.topnav .brand{font:900 20px/1 var(--display);text-transform:uppercase;color:var(--boardfg);text-decoration:none;white-space:nowrap;padding:14px 0}
+.topnav .brand span{color:var(--gold)}
+.topnav nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1}
+.topnav nav::-webkit-scrollbar{display:none}
+.topnav nav a{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#B9BFC1;text-decoration:none;padding:16px 10px;white-space:nowrap;border-bottom:2px solid transparent}
+.topnav nav a:hover,.topnav nav a.on{color:#fff;border-bottom-color:var(--gold)}
+section{scroll-margin-top:64px}
+.head{border-bottom:0;position:relative;padding-bottom:14px}
+.head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--crim) 0 120px,var(--fg) 120px)}
+.titles div{position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s}
+.titles div::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(233,180,76,.35) 50%,transparent 70%);transform:translateX(-120%)}
+.titles div:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 10px 24px -12px rgba(0,0,0,.45)}
+.titles div:hover::after{transform:translateX(120%);transition:transform .7s}
+.fact{position:relative;transition:background .2s}
+.fact::before{content:"";position:absolute;left:0;top:0;height:3px;width:0;background:var(--crim);transition:width .35s}
+.fact:hover::before{width:100%}
+.series li{transition:background .2s}
+.otd,.gw>div:first-child{position:relative}
+.otd::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--crim)}
+.rbhero{position:relative;overflow:hidden}
+.rbhero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(233,180,76,.22),transparent 70%)}
+.reveal{transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.pre{opacity:.25;transform:translateY(28px)}
+@media (prefers-reduced-motion:no-preference){
+ .hero h1 .l1,.hero h1 .l2{animation:rise .9s cubic-bezier(.2,.7,.2,1) both}
+ .hero h1 .l2{animation:rise .9s .12s cubic-bezier(.2,.7,.2,1) both,shine 6s 1.2s linear infinite}
+ .live i{animation:pulse 2s infinite}
+ .ticker .track{animation:tick 70s linear infinite}
+ .ticker:hover .track{animation-play-state:paused}
+ .bar{transform-box:fill-box;transform-origin:bottom;animation:grow .8s cubic-bezier(.2,.7,.2,1) both;animation-play-state:paused}
+ .chart.go .bar{animation-play-state:running}
+}
+@media (prefers-reduced-motion:reduce){.reveal.pre{opacity:1;transform:none}.ticker .track{padding-left:16px;flex-wrap:wrap;white-space:normal}}
+@keyframes rise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+@keyframes shine{to{background-position:-200% 0}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(59,209,111,.6)}70%{box-shadow:0 0 0 10px rgba(59,209,111,0)}100%{box-shadow:0 0 0 0 rgba(59,209,111,0)}}
+@keyframes tick{to{transform:translateX(-100%)}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media (max-width:560px){.hero .tally div:last-child:nth-child(odd){grid-column:1/-1}.topnav .brand{font-size:17px}.hero .wrap{padding-block:40px 32px}}
 </style>
 
-<header class="board">
+<header class="hero">
   <div class="wrap">
-    <div class="label">University of Alabama football · Since 1892</div>
-    <h1>Crimson <span>Ledger</span></h1>
-    <p>A century of Crimson Tide football, told by the numbers. Championship seasons, the coaches who built them, the games people still argue about, and every result since 1892, searchable by opponent, bowl and decade.</p>
+    <div class="eyebrow"><span class="live" id="heronow"><i></i>2026 season</span><span class="label">Alabama football · Since 1892</span></div>
+    <h1><span class="l1">The Crimson</span><span class="l2">Ledger</span></h1>
+    <p class="lede">Every Alabama football game ever played, from the 1892 opener to last Saturday. Championship seasons, the coaches who built them, the games people still argue about, and the numbers that settle it.</p>
+    <div class="cta"><a class="p" href="#gb-h">Search every game</a><a class="s" href="#sb-h">Strange but true</a></div>
     <div class="tally" id="tally"></div>
   </div>
 </header>
+<div class="ticker" aria-label="Strange but true facts"><div class="track" id="ticker"></div></div>
+<div class="topnav"><div class="wrap">
+  <a class="brand" href="#">Crimson <span>Ledger</span></a>
+  <nav aria-label="Sections" id="nav">
+    <a href="#otd-h">Today</a><a href="#gw-h">Game week</a><a href="#sb-h">Strange</a><a href="#tw-h">Titles</a><a href="#gb-h">Games</a><a href="#op-h">Head to head</a><a href="#rb-h">Records</a><a href="#ss-h">Seasons</a><a href="#co-h">Coaches</a><a href="#sv-h">Stories</a>
+  </nav>
+</div></div>
 
 <main class="wrap">
   <section aria-labelledby="otd-h">
@@ -452,7 +529,7 @@ $("srows").closest(".tbl").classList.add("tall");
 
 /* chart */
 (()=>{
- const x0=36,x1=992,y0=150,y1=12,first=1892,last=S[S.length-1].year,bw=(x1-x0)/(last-first+1);
+ const x0=48,x1=992,y0=150,y1=12,first=1892,last=S[S.length-1].year,bw=(x1-x0)/(last-first+1);
  const X=y=>x0+(y-first)*bw, Y=p=>y0-(y0-y1)*p;
  let svg="";
  [0,.5,1].forEach(p=>svg+=`<line class="grid" x1="${x0}" x2="${x1}" y1="${Y(p)}" y2="${Y(p)}"/><text class="ax" x="${x0-6}" y="${Y(p)+4}" text-anchor="end">${p===0?"0":p===1?"1.000":".500"}</text>`);
@@ -650,4 +727,36 @@ function drawOpp(){
 document.querySelectorAll("th button[data-o]").forEach(b=>b.addEventListener("click",()=>{ok===b.dataset.o?od*=-1:(ok=b.dataset.o,od=ok==="o"?1:-1);drawOpp()}));
 ["oq","omin"].forEach(id=>$(id).addEventListener("input",drawOpp));
 drawOpp();
+
+/* ===== game-day layer ===== */
+(()=>{
+ const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+ // live 2026 record in the hero pill
+ const cur=Math.max(...ALL.map(g=>g.s)),cg=ALL.filter(g=>g.s===cur);
+ const cw=cg.filter(g=>g.res==="W").length,cl=cg.filter(g=>g.res==="L").length;
+ $("heronow").innerHTML=`<i></i>${cur} season · ${cw}–${cl}`;
+ // ticker from the facts
+ const items=FACTS.map(f=>`<span><b>${f[1]}</b>${f[2]}</span>`).join("");
+ $("ticker").innerHTML=items+items;
+ // count-up on the tally
+ const nums=[...document.querySelectorAll("#tally b")];
+ nums.forEach(b=>{const end=+b.textContent.replace(/,/g,"");if(!isFinite(end)||reduce)return;b.dataset.end=end});
+ const count=b=>{const end=+b.dataset.end;if(!end)return;const t0=performance.now(),d=1400;
+  const step=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);b.textContent=Math.round(end*e).toLocaleString();if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)};
+ nums.forEach(count);
+ if(!("IntersectionObserver" in window)){document.querySelectorAll(".chart").forEach(c=>c.classList.add("go"));return}
+ // reveal sections that start below the fold
+ const secs=[...document.querySelectorAll("main section")];
+ const vh=innerHeight;
+ const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.remove("pre");io.unobserve(e.target)}}),{threshold:.08});
+ if(!reduce)secs.forEach(s=>{s.classList.add("reveal");if(s.getBoundingClientRect().top>vh){s.classList.add("pre");io.observe(s)}});
+ // grow the season chart when it scrolls in
+ const ch=document.querySelector(".chart");
+ if(ch){const co=new IntersectionObserver(es=>{if(es[0].isIntersecting){ch.classList.add("go");co.disconnect()}},{threshold:.3});co.observe(ch)}
+ // highlight the current section in the menu
+ const links=[...document.querySelectorAll("#nav a")];
+ const map=new Map(links.map(a=>[a.getAttribute("href").slice(1),a]));
+ const no=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.remove("on"));const a=map.get(e.target.id);if(a){a.classList.add("on");const n=$("nav");n.scrollLeft=a.offsetLeft-n.clientWidth/2+a.clientWidth/2}}}),{rootMargin:"-45% 0px -50% 0px"});
+ map.forEach((a,id)=>{const el=document.getElementById(id);if(el)no.observe(el)});
+})();
 </script>
