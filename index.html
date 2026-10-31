@@ -114,6 +114,12 @@ tr.title td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .fact b{font:900 clamp(44px,8vw,60px)/1 var(--display);font-variant-numeric:tabular-nums;color:var(--fg)}
 .fact h3{font-size:22px;font-weight:800;text-transform:uppercase}
 .fact p{margin:0;font-size:15px;line-height:1.5;color:var(--muted)}
+#sbf{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.fnav{display:flex;gap:8px}
+.fnav button{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;cursor:pointer}
+.fnav button:hover{border-color:var(--fg)}
+.facts{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.fact b{font-size:clamp(52px,9vw,76px)}
 .rbctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .rbctl select{font:15px var(--mono);padding:9px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;min-width:0;flex:1 1 220px;max-width:340px}
 .seg{display:inline-flex;border:1px solid var(--fg);border-radius:2px;overflow:hidden}
@@ -673,33 +679,131 @@ const SCHED=[["2026-09-05","East Carolina","H"],["2026-09-12","Kentucky","A"],["
 })();
 
 
-/* strange but true: every number below was computed from the game data */
-const FACTS=[
- ["Coincidence","41–24","Same score, twice","Alabama beat Georgia 41–24 in October 2020, then beat Georgia 41–24 again in the 2021 SEC Championship."],
- ["Coincidence","52–0","Back-to-back blanks","Arkansas lost to Alabama 52–0 in 2012, then lost 52–0 again in 2013."],
- ["Coincidence","53–0","Déjà vu in 1932","Alabama beat Mississippi State 53–0 in 1931, and 53–0 again the next year."],
- ["Coincidence","21–0","LSU's least favorite score","Alabama has beaten LSU 21–0 three times: 1920, 1966, and the BCS title game that closed the 2011 season."],
- ["Calendar","7–0","The Halloween curse","Alabama has played Mississippi State on October 31 seven times and won every one."],
- ["Calendar","Dec. 25","One Christmas game","Alabama has played on Christmas Day once: a 28–6 win over Washington in the 1986 Sun Bowl."],
- ["Calendar","7","Sunday football","Alabama has played seven games on a Sunday. The most recent: the 2007 Independence Bowl, a 30–24 win over Colorado in Saban's first season."],
- ["Calendar","37","Happy New Year","Alabama has played 37 games on New Year's Day, going 20–16–1."],
- ["Extreme","110–0","The biggest blowout","In 1922 Alabama beat Marion 110–0, still the most points the Tide has ever scored in a game."],
- ["Extreme","0–78","The worst day","Vanderbilt beat Alabama 78–0 in 1906, the most lopsided loss in program history."],
- ["Extreme","111","Points in one game","The 63–48 win over Ole Miss in 2020 is the highest-scoring Alabama game ever, and the most points the Tide has allowed in a win."],
- ["Extreme","49","And still lost","Alabama scored 49 at Tennessee in 2022 and lost 52–49, the most points it has ever scored in a loss."],
- ["Oddity","2–0","A safety wins it","Alabama beat Sewanee 2–0 in 1926, a season that ended unbeaten and with a claimed national title."],
- ["Oddity","27–0","The most common score","Alabama has won 27–0 sixteen times, more than any other final score. There have been 681 different final scores in all."],
- ["Oddity","1–0","The one-game season","In 1897 Alabama played exactly one game, beat the Tuscaloosa Athletic Club 6–0, and finished perfect."],
- ["Oddity","44","Ties, before overtime","Alabama tied 44 games, 13 of them 0–0. The last tie was 17–17 with Tennessee in 1993."],
- ["Streak","28","Straight wins","From 1978 to 1980, Alabama won 28 games in a row on the field, the program's longest winning streak."],
- ["Streak",".892","Best decade","The 2010s were Alabama's best decade by winning percentage, ahead of the 1970s (.863) and 1930s (.858)."]
-];
-const FK=["All",...new Set(FACTS.map(f=>f[0]))];let fk="All";
-function drawFacts(){
- $("sbf").innerHTML=FK.map(k=>`<button type="button" aria-pressed="${k===fk}" data-k="${k}">${k}</button>`).join("");
- $("facts").innerHTML=FACTS.filter(f=>fk==="All"||f[0]===fk).map(([k,n,h,p])=>`<div class="fact"><span class="k">${k}</span><b>${n}</b><h3>${h}</h3><p>${p}</p></div>`).join("");
+/* strange but true: a pool of facts computed live from every game, 3 shown per week */
+const FX=(()=>{
+ const G=ALL, P=[], R=(w,l,t)=>`${w}–${l}${t?"–"+t:""}`;
+ const wlt=gs=>{const w=gs.filter(g=>g.res==="W").length,l=gs.filter(g=>g.res==="L").length;return[w,l,gs.length-w-l]};
+ const sc=g=>`${g.a}–${g.o}`, vs=g=>(g.loc==="A"?"at ":"vs. ")+g.opp;
+ const yrs=a=>a.length<=2?a.join(" and "):a.slice(0,-1).join(", ")+", and "+a[a.length-1];
+ const add=(k,n,h,p,opp)=>P.push({k,n:String(n),h,p,opp:opp||null});
+ const opps=[...new Set(G.map(g=>g.opp))];
+ const byOpp=o=>G.filter(g=>g.opp===o);
+ const MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
+ const md=g=>g.d.slice(5), dow=g=>new Date(g.d+"T12:00:00").getDay();
+ const streak=(gs,pred)=>{let b=0,c=0,s=null,bs=null,be=null;for(const g of gs){if(pred(g)){c++;s=s||g;if(c>b){b=c;bs=s;be=g}}else{c=0;s=null}}return{n:b,s:bs,e:be}};
+
+ // repeated final scores against the same opponent
+ const rep={};G.forEach(g=>{const k=g.opp+"|"+g.a+"|"+g.o;(rep[k]=rep[k]||[]).push(g)});
+ Object.values(rep).forEach(gs=>{
+  const g=gs[0]; if(g.a===g.o&&g.a===0)return; if(byOpp(g.opp).length<10)return;
+  const ys=gs.map(x=>x.y);
+  if(gs.length>=3)add("Coincidence",sc(g),`Same score, ${["","","two","three","four","five","six"][gs.length]||gs.length} times`,`Alabama and ${g.opp} have finished ${sc(g)} ${gs.length} times: ${yrs(ys)}.`,g.opp);
+  for(let i=1;i<gs.length;i++)if(gs[i].s-gs[i-1].s===1)add("Coincidence",sc(g),"Same score, back to back",`Alabama ${g.res==="W"?"beat":g.res==="L"?"lost to":"tied"} ${g.opp} ${sc(g)} in ${gs[i-1].s}, then ${g.res==="T"?"tied":"did it"} ${sc(g)} again in ${gs[i].s}.`,g.opp);
+ });
+
+ // same date, same opponent, one-sided
+ const dd={};G.forEach(g=>{const k=md(g)+"|"+g.opp;(dd[k]=dd[k]||[]).push(g)});
+ const bestDate={};Object.values(dd).forEach(gs=>{const o=gs[0].opp,[w,l,t]=wlt(gs);if(gs.length<5||(l&&w)||t)return;if(!bestDate[o]||gs.length>bestDate[o].length)bestDate[o]=gs});
+ Object.values(bestDate).forEach(gs=>{ const [w,l,t]=wlt(gs), g=gs[0], m=+md(g).slice(0,2), d=+md(g).slice(3);
+  if(l===0&&t===0)add("Calendar",`${w}–0`,`${g.opp} on ${MON[m-1].slice(0,3)}. ${d}`,`Alabama has played ${g.opp} on ${MON[m-1]} ${d} ${w} times and won every one.`,g.opp);
+  else if(w===0&&t===0)add("Calendar",`0–${l}`,`A bad date with ${g.opp}`,`Alabama has played ${g.opp} on ${MON[m-1]} ${d} ${l} times and lost every one.`,g.opp);
+ });
+
+ // holidays and days of the week
+ const hol=(mmdd,name)=>{const gs=G.filter(g=>md(g)===mmdd);if(!gs.length)return;const[w,l,t]=wlt(gs);
+  if(gs.length===1){const g=gs[0];add("Calendar",name==="Christmas"?"Dec. 25":"1",`One ${name} game`,`Alabama has played on ${name} once: ${g.res==="W"?"a":"a"} ${sc(g)} ${g.res==="W"?"win":g.res==="L"?"loss":"tie"} ${vs(g)}${g.note?" in the "+g.y+" "+g.note:" in "+g.y}.`)}
+  else add("Calendar",gs.length,`${name} football`,`Alabama has played ${gs.length} games on ${name}, going ${R(w,l,t)}.`)};
+ hol("01-01","New Year's Day");hol("12-25","Christmas");hol("10-31","Halloween");
+ const tg=G.filter(g=>{const x=new Date(g.d+"T12:00:00");return x.getMonth()===10&&x.getDay()===4&&x.getDate()>=22&&x.getDate()<=28});
+ if(tg.length){const[w,l,t]=wlt(tg);add("Calendar",tg.length,"Thanksgiving football",`Alabama has played ${tg.length} games on Thanksgiving Day, going ${R(w,l,t)}. The most recent: ${sc(tg[tg.length-1])} ${vs(tg[tg.length-1])} in ${tg[tg.length-1].y}.`)}
+ const sun=G.filter(g=>dow(g)===0);if(sun.length){const g=sun[sun.length-1];add("Calendar",sun.length,"Sunday football",`Alabama has played ${sun.length} games on a Sunday. The most recent was ${g.note?"the "+g.y+" "+g.note:"in "+g.y}, a ${sc(g)} ${g.res==="W"?"win over":g.res==="L"?"loss to":"tie with"} ${g.opp}.`)}
+ [["Thursday",4],["Friday",5]].forEach(([nm,i])=>{const gs=G.filter(g=>dow(g)===i);if(gs.length>=10){const[w,l,t]=wlt(gs);add("Calendar",R(w,l,t),`${nm} nights`,`Alabama is ${R(w,l,t)} all-time in games played on a ${nm}.`)}});
+ const sat=G.filter(g=>dow(g)===6).length;add("Calendar",Math.round(100*sat/G.length)+"%","Saturday's team",`${sat.toLocaleString()} of Alabama's ${G.length.toLocaleString()} games were played on a Saturday. The rest are spread across every other day of the week.`);
+ const months={};G.forEach(g=>{const m=+g.d.slice(5,7);(months[m]=months[m]||[]).push(g)});
+ Object.entries(months).forEach(([m,gs])=>{if(gs.length<40)return;const[w,l,t]=wlt(gs);add("Calendar",R(w,l,t),`Alabama in ${MON[m-1]}`,`Alabama's all-time record in ${MON[m-1]} is ${R(w,l,t)}, across ${gs.length} games.`)});
+
+ // extremes
+ const mx=f=>G.reduce((a,b)=>f(b)>f(a)?b:a);
+ let g=mx(x=>x.a);add("Extreme",sc(g),"The most points ever",`Alabama's ${g.a} points ${vs(g)} in ${g.y} are still the most it has scored in a game.`);
+ g=mx(x=>x.o-x.a);add("Extreme",`${g.a}–${g.o}`,"The worst day",`${g.opp} beat Alabama ${g.o}–${g.a} in ${g.y}, the most lopsided loss in program history.`);
+ g=mx(x=>x.a+x.o);add("Extreme",g.a+g.o,"Points in one game",`The ${sc(g)} ${g.res==="W"?"win":"loss"} ${vs(g)} in ${g.y} is the highest-scoring Alabama game ever.`);
+ g=G.filter(x=>x.res==="W").reduce((a,b)=>b.o>a.o?b:a);add("Extreme",g.o,"Allowed, and still won",`Alabama gave up ${g.o} points ${vs(g)} in ${g.y} and won ${sc(g)}, the most it has allowed in a win.`);
+ g=G.filter(x=>x.res==="L").reduce((a,b)=>b.a>a.a?b:a);add("Extreme",g.a,"Scored, and still lost",`Alabama scored ${g.a} ${vs(g)} in ${g.y} and lost ${sc(g)}, the most it has scored in a loss.`);
+ const sw=G.filter(x=>x.res==="W"&&x.o===0);add("Extreme",sw.length,"Shutout wins",`Alabama has shut out its opponent in ${sw.length} wins. It has been held scoreless ${G.filter(x=>x.a===0).length} times.`);
+ const seasons={};G.forEach(x=>(seasons[x.s]=seasons[x.s]||[]).push(x));
+ let bs=Object.entries(seasons).reduce((a,b)=>b[1].reduce((s,x)=>s+x.a,0)>a[1].reduce((s,x)=>s+x.a,0)?b:a);
+ add("Extreme",bs[1].reduce((s,x)=>s+x.a,0),"The highest-scoring season",`Alabama scored ${bs[1].reduce((s,x)=>s+x.a,0)} points in ${bs[0]}, more than in any other season.`);
+ let so=Object.entries(seasons).reduce((a,b)=>b[1].filter(x=>x.o===0).length>a[1].filter(x=>x.o===0).length?b:a);
+ add("Extreme",so[1].filter(x=>x.o===0).length,"A season of zeros",`In ${so[0]}, Alabama held ${so[1].filter(x=>x.o===0).length} of its ${so[1].length} opponents scoreless, its most shutouts in a season.`);
+
+ // streaks
+ let s=streak(G,x=>x.res==="W");add("Streak",s.n,"Straight wins",`From ${s.s.y} to ${s.e.y}, Alabama won ${s.n} games in a row on the field, the program's longest winning streak.`);
+ s=streak(G,x=>x.res!=="L");add("Streak",s.n,"Unbeaten run",`Alabama went ${s.n} straight games without a loss from ${s.s.y} to ${s.e.y}.`);
+ s=streak(G,x=>x.res==="L");add("Streak",s.n,"The long drought",`Alabama lost ${s.n} straight games from ${s.s.y} to ${s.e.y}, the longest losing streak in program history.`);
+ s=streak(G,x=>x.o===0);add("Streak",s.n,"Nobody scores",`Alabama shut out ${s.n} opponents in a row from ${s.s.y} to ${s.e.y}.`);
+ const dec={};G.forEach(x=>{const k=Math.floor(x.s/10)*10;(dec[k]=dec[k]||[]).push(x)});
+ const dp=Object.entries(dec).filter(([k,v])=>v.length>=40).map(([k,v])=>{const[w,l,t]=wlt(v);return[k,(w+t/2)/v.length,R(w,l,t)]}).sort((a,b)=>b[1]-a[1]);
+ const pf3=p=>p.toFixed(3).replace(/^0/,"");
+ add("Streak",pf3(dp[0][1]),"Best decade",`The ${dp[0][0]}s were Alabama's best decade by winning percentage (${dp[0][2]}), ahead of the ${dp[1][0]}s (${pf3(dp[1][1])}) and ${dp[2][0]}s (${pf3(dp[2][1])}).`);
+ add("Streak",pf3(dp[dp.length-1][1]),"The leanest decade",`The ${dp[dp.length-1][0]}s were Alabama's weakest decade by winning percentage, at ${dp[dp.length-1][2]}.`);
+
+ // close games and big stages
+ const one=G.filter(x=>x.margin===1),[o1,o2]=wlt(one);add("Oddity",R(o1,o2),"One-point games",`Alabama is ${R(o1,o2)} all-time in games decided by a single point.`);
+ const cl=G.filter(x=>x.res!=="T"&&x.margin<=3),[c1,c2]=wlt(cl);add("Oddity",R(c1,c2),"Three points or less",`In games decided by three points or fewer, Alabama is ${R(c1,c2)}.`);
+ const bw=G.filter(x=>x.post),[b1,b2,b3]=wlt(bw);add("Oddity",R(b1,b2,b3),"Postseason record",`Counting bowls and playoff games, Alabama is ${R(b1,b2,b3)} in the postseason.`);
+ const ti=G.filter(x=>x.res==="T"),zz=ti.filter(x=>x.a===0);add("Oddity",ti.length,"Ties, before overtime",`Alabama tied ${ti.length} games, ${zz.length} of them 0–0. The last tie was ${sc(ti[ti.length-1])} with ${ti[ti.length-1].opp} in ${ti[ti.length-1].y}.`);
+ const sc2={};G.forEach(x=>{const k=x.a+"–"+x.o;sc2[k]=(sc2[k]||0)+1});const top=Object.entries(sc2).sort((a,b)=>b[1]-a[1])[0];
+ add("Oddity",top[0],"The most common score",`Alabama has finished ${top[0]} ${top[1]} times, more than any other final score. There have been ${Object.keys(sc2).length} different final scores in all.`);
+ const once=opps.filter(o=>byOpp(o).length===1).length;add("Oddity",once,"One and done",`Alabama has played ${once} different opponents exactly once.`);
+ const most=opps.map(o=>[o,byOpp(o).length]).sort((a,b)=>b[1]-a[1]);
+ if(most[0][1]===most[1][1])add("Oddity",most[0][1],"The most familiar foes",`${most[0][0]} and ${most[1][0]} are tied as Alabama's most frequent opponents, with ${most[0][1]} meetings each. ${most[2][0]} is next with ${most[2][1]}.`);
+ else add("Oddity",most[0][1],"The most familiar foe",`${most[0][0]} is Alabama's most frequent opponent, with ${most[0][1]} meetings. ${most[1][0]} (${most[1][1]}) and ${most[2][0]} (${most[2][1]}) are next.`,most[0][0]);
+ const sev=Object.entries(seasons).filter(([k,v])=>v.length===1);sev.forEach(([k,v])=>add("Oddity",`${v[0].a}–${v[0].o}`,"The one-game season",`In ${k} Alabama played exactly one game, ${v[0].res==="W"?"beat":"lost to"} ${v[0].opp} ${sc(v[0])}, and that was the whole season.`));
+
+ // opponent facts (also used for game week)
+ const onSched=new Set(SCHED.map(s=>s[1]));
+ opps.forEach(o=>{
+  const gs=byOpp(o); if(gs.length<5)return; if(gs.length<15&&!onSched.has(o)&&!(wlt(gs)[1]===0&&gs.length>=8))return;
+  const [w,l,t]=wlt(gs), f=gs[0];
+  add("Rivalry",f.y,`First meeting: ${o}`,`Alabama and ${o} first met in ${f.y}. ${f.res==="W"?"Alabama won":f.res==="L"?o+" won":"It ended in a tie,"} ${f.res==="L"?f.o+"–"+f.a:sc(f)}. They have met ${gs.length} times in all.`,o);
+  if(l===0&&gs.length>=8)add("Rivalry",R(w,l,t),`Never lost to ${o}`,`In ${gs.length} meetings, ${o} has never beaten Alabama: ${R(w,l,t)}.`,o);
+  const st=streak(gs,x=>x.res==="W");if(st.n>=6)add("Rivalry",st.n,`${st.n} straight over ${o}`,`Alabama's longest win streak against ${o} is ${st.n} games, from ${st.s.y} to ${st.e.y}.`,o);
+  const ls=streak(gs,x=>x.res==="L");if(ls.n>=4)add("Rivalry",ls.n,`When ${o} had Alabama's number`,`${o}'s longest win streak against Alabama is ${ls.n} games, from ${ls.s.y} to ${ls.e.y}.`,o);
+  const big=gs.filter(x=>x.res==="W").sort((a,b)=>b.margin-a.margin)[0];if(big&&big.margin>=28)add("Rivalry",sc(big),`The ${o} blowout`,`Alabama's biggest win over ${o} came in ${big.y}: ${sc(big)}.`,o);
+  const tt=gs.filter(x=>x.res==="T");if(tt.length>=4)add("Rivalry",tt.length,`Ties with ${o}`,`Alabama and ${o} have tied ${tt.length} times, most recently ${sc(tt[tt.length-1])} in ${tt[tt.length-1].y}.`,o);
+  const one1=gs.filter(x=>x.margin===1);if(one1.length>=3){const[a1,a2]=wlt(one1);add("Rivalry",one1.length,`One-point games with ${o}`,`Alabama and ${o} have played ${one1.length} games decided by one point. Alabama is ${R(a1,a2)} in them.`,o)}
+ });
+
+ // a few hand-checked ones the data can't build on its own
+ add("Oddity","2–0","A safety wins it","Alabama beat Sewanee 2–0 in 1926, a season that ended unbeaten and with a claimed national title.","Sewanee");
+ return P;
+})();
+
+const FWEEK=(()=>{ // weeks since Monday, Jan. 5, 2026 (Central time is close enough at day granularity)
+ const t=new Date();t.setHours(12,0,0,0);return Math.max(0,Math.floor((t-new Date(2026,0,5,12))/(7*864e5)));
+})();
+function seeded(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const FORDER=(()=>{const r=seeded(1892),idx=FX.map((_,i)=>i);for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]]}return idx})();
+function weekFacts(w){
+ const today=new Date();today.setHours(12,0,0,0);
+ const iso=new Date(today.getTime()+(w-FWEEK)*7*864e5).toISOString().slice(0,10);
+ const nx=SCHED.find(s=>s[0]>=iso&&Math.round((new Date(s[0]+"T12:00:00")-new Date(iso+"T12:00:00"))/864e5)<=7);
+ const pick=[],used=new Set();
+ if(nx){const of=FX.map((f,i)=>[f,i]).filter(([f])=>f.opp===nx[1]);if(of.length){const [f,i]=of[w%of.length];pick.push({...f,gw:nx[1]});used.add(i)}}
+ let j=(w*3)%FORDER.length;
+ while(pick.length<3){const i=FORDER[j%FORDER.length];j++;if(used.has(i))continue;if(nx&&FX[i].opp===nx[1])continue;used.add(i);pick.push(FX[i])}
+ return pick;
 }
-$("sbf").addEventListener("click",e=>{const b=e.target.closest("button");if(b){fk=b.dataset.k;drawFacts()}});
+let fw=FWEEK;
+function drawFacts(){
+ const set=weekFacts(fw),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+ const mon=new Date(2026,0,5+fw*7);
+ $("sbf").innerHTML=`<span class="label">${fw===FWEEK?"This week's three":"Week of "+mon.toLocaleDateString("en-US",{month:"short",day:"numeric"})} · ${FX.length} facts in the pool · new set every Monday</span>
+  <span class="fnav"><button type="button" id="fprev" aria-label="Previous week's facts">← Last week</button>${fw!==FWEEK?'<button type="button" id="fnow">This week</button>':""}</span>`;
+ $("facts").innerHTML=set.map(f=>`<div class="fact"><span class="k">${f.gw?"Game week · "+esc(f.gw):esc(f.k)}</span><b>${esc(f.n)}</b><h3>${esc(f.h)}</h3><p>${esc(f.p)}</p></div>`).join("");
+ $("fprev").onclick=()=>{if(fw>0){fw--;drawFacts()}};
+ const n=document.getElementById("fnow");if(n)n.onclick=()=>{fw=FWEEK;drawFacts()};
+}
 drawFacts();
 
 /* record book */
