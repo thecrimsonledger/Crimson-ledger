@@ -208,6 +208,21 @@ section{scroll-margin-top:64px}
 @keyframes tick{to{transform:translateX(-100%)}}
 @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @media (max-width:560px){.hero .tally div:last-child:nth-child(odd){grid-column:1/-1}.topnav .brand{font-size:17px}.hero .wrap{padding-block:40px 32px}}
+.nl{margin-top:56px;background:var(--board);color:var(--boardfg);border-top:4px solid var(--crim);padding:36px clamp(20px,4vw,44px);display:grid;gap:22px;grid-template-columns:1.2fr 1fr;align-items:center;border-radius:2px}
+.nl h2{font:800 clamp(32px,5vw,46px)/1 var(--display);text-transform:uppercase;margin:6px 0 10px}
+.nl h2 span{color:var(--gold)}
+.nl p{margin:0;font:17px/1.5 var(--body);color:#C9CDCD;max-width:46ch}
+.nl .label{color:var(--gold)}
+.nl form{display:flex;flex-wrap:wrap;gap:10px}
+.nl input{flex:1 1 220px;min-width:0;font:16px/1 var(--body);padding:14px 14px;border-radius:2px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);color:var(--boardfg)}
+.nl input::placeholder{color:#8C9395}
+.nl input:focus{outline:2px solid var(--gold);outline-offset:1px}
+.nl button{font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:15px 20px;border-radius:2px;border:0;background:#9E1B32;color:#fff;cursor:pointer;transition:transform .15s}
+.nl button:hover{transform:translateY(-2px)}
+.nl button:disabled{opacity:.6;transform:none;cursor:default}
+.nl small{display:block;width:100%;font:12px/1.4 var(--mono);color:#8C9395;letter-spacing:.04em}
+.nl .ok{font:600 15px/1.5 var(--body);color:var(--gold)}
+@media (max-width:760px){.nl{grid-template-columns:1fr}}
 </style>
 
 <header class="hero">
@@ -215,7 +230,7 @@ section{scroll-margin-top:64px}
     <div class="eyebrow"><span class="live" id="heronow"><i></i>2026 season</span><span class="label">Alabama football · Since 1892</span></div>
     <h1><span class="l1">The Crimson</span><span class="l2">Ledger</span></h1>
     <p class="lede">Every Alabama football game ever played, from the 1892 opener to last Saturday. Championship seasons, the coaches who built them, the games people still argue about, and the numbers that settle it.</p>
-    <div class="cta"><a class="p" href="#gb-h">Search every game</a><a class="s" href="#sb-h">Strange but true</a><button type="button" class="s app" id="getapp" hidden>Get the app</button></div>
+    <div class="cta"><a class="p" href="#gb-h">Search every game</a><a class="s" href="#sb-h">Strange but true</a><a class="s" href="#nl-h">Get the newsletter</a><button type="button" class="s app" id="getapp" hidden>Get the app</button></div>
     <p class="iostip" id="iostip" hidden>On iPhone: tap <b>Share</b> <span aria-hidden="true">⎋</span> at the bottom of Safari, then <b>Add to Home Screen</b>.</p>
     <div class="tally" id="tally"></div>
   </div>
@@ -224,7 +239,7 @@ section{scroll-margin-top:64px}
 <div class="topnav"><div class="wrap">
   <a class="brand" href="#">Crimson <span>Ledger</span></a>
   <nav aria-label="Sections" id="nav">
-    <a href="#otd-h">Today</a><a href="#gw-h">Game week</a><a href="#sb-h">Strange</a><a href="#tw-h">Titles</a><a href="#gb-h">Games</a><a href="#op-h">Head to head</a><a href="#rb-h">Records</a><a href="#ss-h">Seasons</a><a href="#co-h">Coaches</a><a href="#sv-h">Stories</a>
+    <a href="#otd-h">Today</a><a href="#gw-h">Game week</a><a href="#sb-h">Strange</a><a href="#tw-h">Titles</a><a href="#gb-h">Games</a><a href="#op-h">Head to head</a><a href="#rb-h">Records</a><a href="#ss-h">Seasons</a><a href="#co-h">Coaches</a><a href="#sv-h">Stories</a><a href="#nl-h">Newsletter</a>
   </nav>
 </div></div>
 
@@ -352,6 +367,23 @@ section{scroll-margin-top:64px}
       <thead><tr><th>Coach</th><th>Years</th><th class="num">Seasons</th><th class="num">Record</th><th class="num">Pct</th><th class="num">Titles</th></tr></thead>
       <tbody id="coaches"></tbody>
     </table></div>
+  </section>
+  <section aria-labelledby="nl-h">
+    <div class="nl">
+      <div>
+        <span class="label">Free · Weekly in season</span>
+        <h2 id="nl-h">The Weekly <span>Ledger</span></h2>
+        <p>Game-week history for the next opponent, a strange-but-true stat, and this week in Alabama football history. One email, straight to your inbox.</p>
+      </div>
+      <div>
+        <form id="nlform" novalidate>
+          <input type="email" name="email" id="nlemail" placeholder="you@example.com" autocomplete="email" required aria-label="Email address">
+          <button type="submit">Sign up</button>
+          <small id="nlmsg">No spam. Unsubscribe anytime.</small>
+        </form>
+        <p class="ok" id="nlok" hidden>You're in. Check your inbox to confirm your subscription.</p>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -921,3 +953,15 @@ const NEWS=[
  addEventListener("appinstalled",()=>{btn.hidden=true;tip.hidden=true});
 })();
 </script>
+<script>
+/* newsletter: set NL to the provider's form endpoint once the account exists */
+const NL={action:"",field:"email_address"}; /* Kit: https://app.kit.com/forms/FORM_ID/subscriptions */
+(()=>{const f=document.getElementById("nlform"),e=document.getElementById("nlemail"),m=document.getElementById("nlmsg"),ok=document.getElementById("nlok");
+f.addEventListener("submit",async ev=>{ev.preventDefault();const v=e.value.trim();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){m.textContent="Enter a valid email address.";e.focus();return}
+ if(!NL.action){m.textContent="Signups open soon. Check back this week.";return}
+ const b=f.querySelector("button");b.disabled=true;const d=new FormData();d.append(NL.field,v);
+ try{await fetch(NL.action,{method:"POST",body:d,mode:"no-cors"});f.hidden=true;ok.hidden=false}
+ catch(_){b.disabled=false;m.textContent="Couldn't reach the signup service. Try again in a minute."}});})();
+</script>
+
