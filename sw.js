@@ -1,7 +1,7 @@
 /* The Crimson Ledger service worker.
    Pages and data: network first, so the weekly update shows up right away; cached copy when offline.
    Icons and fonts: cache first. Bump VERSION to clear old caches. */
-const VERSION = "cl-v2";
+const VERSION = "cl-v3";
 const CORE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
