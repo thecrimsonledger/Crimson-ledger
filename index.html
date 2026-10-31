@@ -10,6 +10,14 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%2317191A'/%3E%3Crect y='54' width='64' height='10' fill='%239E1B32'/%3E%3Ctext x='32' y='44' font-family='Impact,Arial Narrow,sans-serif' font-size='36' font-weight='900' text-anchor='middle' fill='%23E9B44C'%3ECL%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#17191A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Crimson Ledger">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}
@@ -166,7 +174,10 @@ tr.title td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .cta a{font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:13px 18px;border-radius:2px;transition:transform .15s,background .15s}
 .cta a.p{background:#9E1B32;color:#fff}
 .cta a.s{border:1px solid rgba(255,255,255,.35);color:var(--boardfg)}
-.cta a:hover{transform:translateY(-2px)}
+.cta a:hover,.cta button:hover{transform:translateY(-2px)}
+.cta button.app{font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:13px 18px;border-radius:2px;border:1px solid var(--gold);background:transparent;color:var(--gold);cursor:pointer;transition:transform .15s}
+.iostip{margin:0;font:13px/1.5 var(--mono);color:#D3D7D8;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);padding:10px 12px;border-radius:2px;max-width:46ch}
+.iostip b{color:var(--gold)}
 .cta a.p:hover{background:#B8283F}
 .ticker{background:#9E1B32;color:#fff;overflow:hidden;white-space:nowrap;font:600 13px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase}
 .ticker .track{display:inline-flex;gap:48px;padding:13px 0;padding-left:100%}
@@ -226,7 +237,8 @@ section{scroll-margin-top:64px}
     <div class="eyebrow"><span class="live" id="heronow"><i></i>2026 season</span><span class="label">Alabama football · Since 1892</span></div>
     <h1><span class="l1">The Crimson</span><span class="l2">Ledger</span></h1>
     <p class="lede">Every Alabama football game ever played, from the 1892 opener to last Saturday. Championship seasons, the coaches who built them, the games people still argue about, and the numbers that settle it.</p>
-    <div class="cta"><a class="p" href="#gb-h">Search every game</a><a class="s" href="#sb-h">Strange but true</a></div>
+    <div class="cta"><a class="p" href="#gb-h">Search every game</a><a class="s" href="#sb-h">Strange but true</a><button type="button" class="s app" id="getapp" hidden>Get the app</button></div>
+    <p class="iostip" id="iostip" hidden>On iPhone: tap <b>Share</b> <span aria-hidden="true">⎋</span> at the bottom of Safari, then <b>Add to Home Screen</b>.</p>
     <div class="tally" id="tally"></div>
   </div>
 </header>
@@ -910,6 +922,25 @@ const NEWS=[
  const map=new Map(links.map(a=>[a.getAttribute("href").slice(1),a]));
  const no=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.remove("on"));const a=map.get(e.target.id);if(a){a.classList.add("on");const n=$("nav");n.scrollLeft=a.offsetLeft-n.clientWidth/2+a.clientWidth/2}}}),{rootMargin:"-45% 0px -50% 0px"});
  map.forEach((a,id)=>{const el=document.getElementById(id);if(el)no.observe(el)});
+})();
+
+/* ===== installable app ===== */
+(()=>{
+ const live=/(^|\.)thecrimsonledger\.com$/.test(location.hostname);
+ if(!live)return;               // preview pages can't install or run offline
+ try{if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{})}catch(e){}
+ const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+ if(standalone)return;
+ const btn=$("getapp"),tip=$("iostip");
+ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+ let deferred=null;
+ addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;btn.hidden=false});
+ if(ios){btn.hidden=false}
+ btn.addEventListener("click",async()=>{
+  if(deferred){deferred.prompt();try{await deferred.userChoice}catch(e){}deferred=null;btn.hidden=true}
+  else if(ios){tip.hidden=!tip.hidden}
+ });
+ addEventListener("appinstalled",()=>{btn.hidden=true;tip.hidden=true});
 })();
 </script>
 </body>

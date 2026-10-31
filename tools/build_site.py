@@ -27,6 +27,14 @@ html = f"""<!doctype html>
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="{fav}">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#17191A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Crimson Ledger">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 {links}<style>{reset}</style>
 {style}</head>
 <body>
