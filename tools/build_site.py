@@ -25,7 +25,13 @@ html = f"""<!doctype html>
 <meta property="og:title" content="The Crimson Ledger">
 <meta property="og:description" content="{desc}">
 <meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://thecrimsonledger.com/">
+<meta property="og:image" content="https://thecrimsonledger.com/icons/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://thecrimsonledger.com/icons/og-image.png">
+<link rel="canonical" href="https://thecrimsonledger.com/">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png?v=3">
 <link rel="manifest" href="/manifest.webmanifest?v=3">
 <meta name="theme-color" content="#17191A">

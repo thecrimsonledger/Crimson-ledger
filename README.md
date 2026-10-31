@@ -11,6 +11,7 @@ Live at https://thecrimsonledger.com
 - `tools/update.py` – adds new results to the page and data
 - `tools/cards.py` – makes vertical social cards from the data
 - `tools/build_site.py` – rebuilds `index.html` from `tools/page-source.html`
+- `tools/build_pages.py` – builds `vs/` (one page per opponent), `seasons/` (one page per season), `sitemap.xml` and `robots.txt`. Run it after every weekly update.
 
 ## Sources
 Game results from James Howell's college football scores archive (1902 on) and Wikipedia season pages (1892–1901); 2026 results checked against two live score sources. Season records and statistical leaders from Wikipedia.

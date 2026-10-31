@@ -1,7 +1,7 @@
 /* The Crimson Ledger service worker.
    Pages and data: network first, so the weekly update shows up right away; cached copy when offline.
    Icons and fonts: cache first. Bump VERSION to clear old caches. */
-const VERSION = "cl-v3";
+const VERSION = "cl-v4";
 const CORE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -21,14 +21,14 @@ self.addEventListener("fetch", e => {
   const isFont = url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
   if (!sameOrigin && !isFont) return;
 
-  const isPage = req.mode === "navigate" || url.pathname === "/" || url.pathname.endsWith(".html") || url.pathname.startsWith("/data/");
+  const isPage = req.mode === "navigate" || url.pathname.endsWith("/") || url.pathname.endsWith(".html") || url.pathname.startsWith("/data/");
   if (isPage) {
     e.respondWith(
       fetch(req).then(res => {
         const copy = res.clone();
-        caches.open(VERSION).then(c => c.put(req.mode === "navigate" ? "/" : req, copy));
+        caches.open(VERSION).then(c => c.put(req, copy));
         return res;
-      }).catch(() => caches.match(req.mode === "navigate" ? "/" : req).then(r => r || caches.match("/")))
+      }).catch(() => caches.match(req).then(r => r || caches.match("/")))
     );
     return;
   }

@@ -208,6 +208,7 @@ section{scroll-margin-top:64px}
 @keyframes tick{to{transform:translateX(-100%)}}
 @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @media (max-width:560px){.hero .tally div:last-child:nth-child(odd){grid-column:1/-1}.topnav .brand{font-size:17px}.hero .wrap{padding-block:40px 32px}}
+a.pl{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}a.pl:hover{text-decoration-color:var(--crim)}footer a{color:inherit}
 </style>
 
 <header class="hero">
@@ -251,7 +252,7 @@ section{scroll-margin-top:64px}
   </section>
 
   <section aria-labelledby="sv-h">
-    <div class="head"><h2 id="sv-h">The Story Vault</h2><span class="label">Episode ideas, by era</span></div>
+    <div class="head"><h2 id="sv-h">The Story Vault</h2><span class="label">The stories behind the games, by era</span></div>
     <div class="chips" id="eras" role="group" aria-label="Filter stories by era"></div>
     <ol class="series" id="series"></ol>
   </section>
@@ -355,7 +356,7 @@ section{scroll-margin-top:64px}
   </section>
 </main>
 
-<footer class="wrap">An independent fan history project. Not affiliated with the University of Alabama or the SEC. Verify all figures against primary sources before publishing.</footer>
+<footer class="wrap">An independent fan history project. Not affiliated with the University of Alabama or the SEC. Game results from James Howell's college football scores archive and Wikipedia season pages. <a href="/vs/">All opponents</a> · <a href="/seasons/">All seasons</a></footer>
 
 <script>
 const TITLES=[[1925,"Wade"],[1926,"Wade"],[1930,"Wade"],[1934,"Thomas"],[1941,"Thomas"],[1961,"Bryant"],[1964,"Bryant"],[1965,"Bryant"],[1973,"Bryant"],[1978,"Bryant"],[1979,"Bryant"],[1992,"Stallings"],[2009,"Saban"],[2011,"Saban"],[2012,"Saban"],[2015,"Saban"],[2017,"Saban"],[2020,"Saban"]];
@@ -566,7 +567,7 @@ function drawSeasons(){
  document.querySelectorAll("th button[data-s]").forEach(x=>x.dataset.s===sk?x.setAttribute("aria-sort",sd>0?"ascending":"descending"):x.removeAttribute("aria-sort"));
  const on=new Set(rows.map(s=>s.year)),all=rows.length===S.length;
  document.querySelectorAll("#chart .bar").forEach(r=>r.classList.toggle("on",!all&&on.has(+r.dataset.y)));
- $("srows").innerHTML=rows.length?rows.map(s=>`<tr class="${s.title?"title":""}"><td>${s.year}${s.title?" ★":""}</td><td>${s.coach}</td>
+ $("srows").innerHTML=rows.length?rows.map(s=>`<tr class="${s.title?"title":""}"><td><a class="pl" href="/seasons/${s.year}/">${s.year}</a>${s.title?" ★":""}</td><td>${s.coach}</td>
   <td class="num">${rec(s)}${s.vac?" ▲":""}</td><td class="num">${pf(s.pct)}</td>
   <td class="num">${s.cw===""?"—":`${s.cw}–${s.cl}${+s.ct?"–"+s.ct:""}`}</td><td>${s.bowl||"—"}</td><td class="num">${s.ap??"—"}</td></tr>`).join("")
   :`<tr><td colspan="7" class="empty">No seasons match those filters.</td></tr>`;
@@ -819,6 +820,7 @@ drawRec();
 $("heis").innerHTML=HEISMAN.map(([n,y])=>`<span>${y} · ${n}</span>`).join("");
 
 /* head to head */
+const SLUG=o=>o.toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 const OPP=new Map();
 ALL.forEach(g=>{const o=OPP.get(g.opp)||{o:g.opp,n:0,w:0,l:0,t:0,first:g.y,last:g,big:null,games:[]};
  o.n++;o[g.res.toLowerCase()]++;o.last=g;o.games.push(g);if(g.res==="W"&&(!o.big||g.margin>o.big.margin))o.big=g;OPP.set(g.opp,o)});
@@ -830,7 +832,7 @@ function drawOpp(){
  const rows=[...OPP.values()].filter(x=>x.n>=min&&(!q||x.o.toLowerCase().includes(q))).sort((a,b)=>{const x=ov[ok](a),y=ov[ok](b);return((x>y?1:x<y?-1:0)||b.n-a.n)*od});
  $("ocount").textContent=`${rows.length} of ${OPP.size} opponents`;
  document.querySelectorAll("th button[data-o]").forEach(b=>b.dataset.o===ok?b.setAttribute("aria-sort",od>0?"ascending":"descending"):b.removeAttribute("aria-sort"));
- $("orows").innerHTML=rows.length?rows.map(x=>`<tr><td>${x.o}</td><td class="num">${x.n}</td><td class="num">${x.w}–${x.l}${x.t?"–"+x.t:""}</td>
+ $("orows").innerHTML=rows.length?rows.map(x=>`<tr><td><a class="pl" href="/vs/${SLUG(x.o)}/">${x.o}</a></td><td class="num">${x.n}</td><td class="num">${x.w}–${x.l}${x.t?"–"+x.t:""}</td>
   <td class="num">${pf(x.pct)}</td><td>${x.first===x.last.y?x.first:x.first+"–"+x.last.y}</td>
   <td><span class="pill ${x.streak[0]==="W"?"won":x.streak[0]==="L"?"lost":""}">${x.streak}</span></td>
   <td>${x.big?`${x.big.a}–${x.big.o}, ${x.big.y}`:"—"}</td><td><span class="${rc(x.last)}">${x.last.res} ${x.last.a}–${x.last.o}</span>, ${x.last.y}</td></tr>`).join("")
