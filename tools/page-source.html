@@ -153,6 +153,10 @@ tr.title td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .ticker{background:#9E1B32;color:#fff;overflow:hidden;white-space:nowrap;font:600 13px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase}
 .ticker .track{display:inline-flex;gap:48px;padding:13px 0;padding-left:100%}
 .ticker span b{color:#FFD98A;margin-right:8px}
+.ticker a{color:#fff;opacity:.75;text-decoration:underline;text-underline-offset:3px}
+.ticker a:hover{opacity:1}
+.ticker .sep{color:#FFD98A;opacity:.6}
+.ticker .track{gap:28px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--board)}
 .topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--board) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid #2A2E31}
 .topnav .wrap{display:flex;align-items:center;gap:18px;padding-block:0}
@@ -206,7 +210,7 @@ section{scroll-margin-top:64px}
     <div class="tally" id="tally"></div>
   </div>
 </header>
-<div class="ticker" aria-label="Strange but true facts"><div class="track" id="ticker"></div></div>
+<div class="ticker" aria-label="Alabama football news and season updates"><div class="track" id="ticker"></div></div>
 <div class="topnav"><div class="wrap">
   <a class="brand" href="#">Crimson <span>Ledger</span></a>
   <nav aria-label="Sections" id="nav">
@@ -728,6 +732,14 @@ document.querySelectorAll("th button[data-o]").forEach(b=>b.addEventListener("cl
 ["oq","omin"].forEach(id=>$(id).addEventListener("input",drawOpp));
 drawOpp();
 
+/* NEWS:START (refreshed by the Sunday task: 3–6 items, facts only, written in our own words, each with its source) */
+const NEWS_UPDATED="2026-10-31";
+const NEWS=[
+ {t:"Injury watch",h:"DeBoer says he is hopeful WR Ryan Coleman-Williams will be back for LSU. C Racin Delgatty, CB Zabien Brown and DL Terrance Green could also return",s:"Yahoo Sports",u:"https://sports.yahoo.com/articles/alabama-could-4-key-players-134053500.html"},
+ {t:"Scouting LSU",h:"LSU linebacker Whit Weeks, out since a Sept. 26 leg fracture, could play against Alabama, per CBS Sports",s:"Touchdown Alabama",u:"https://tdalabamamag.com/2026/10/29/lsu-star-linebacker-on-pace-to-possibly-return-for-alabama-game"},
+ {t:"GameDay",h:"Nick Saban names LSU his sleeper pick to win the national title, citing an offense scoring 40-plus a game",s:"Touchdown Alabama",u:"https://tdalabamamag.com/2026/10/31/saban-tells-why-lsu-is-his-sleeper-to-win-national-championship-ahead-of-alabama"}
+];
+/* NEWS:END */
 /* ===== game-day layer ===== */
 (()=>{
  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -735,9 +747,31 @@ drawOpp();
  const cur=Math.max(...ALL.map(g=>g.s)),cg=ALL.filter(g=>g.s===cur);
  const cw=cg.filter(g=>g.res==="W").length,cl=cg.filter(g=>g.res==="L").length;
  $("heronow").innerHTML=`<i></i>${cur} season · ${cw}–${cl}`;
- // ticker from the facts
- const items=FACTS.map(f=>`<span><b>${f[1]}</b>${f[2]}</span>`).join("");
- $("ticker").innerHTML=items+items;
+ // ticker: live season info computed from the data, then this week's headlines
+ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+ const today=new Date();today.setHours(12,0,0,0);
+ const ds=d=>new Date(d+"T12:00:00");
+ const days=d=>Math.round((ds(d)-today)/864e5);
+ const when=n=>n===0?"today":n===1?"tomorrow":`in ${n} days`;
+ const short=d=>ds(d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+ const conf=cg.filter(g=>g.conf),fw=conf.filter(g=>g.res==="W").length,fl=conf.filter(g=>g.res==="L").length;
+ const T=[];
+ const iso=today.toISOString().slice(0,10);
+ const next=SCHED.find(s=>s[0]>=iso);
+ if(next){
+  const og=ALL.filter(g=>g.opp===next[1]),ow=og.filter(g=>g.res==="W").length,ol=og.filter(g=>g.res==="L").length,ot=og.length-ow-ol;
+  T.push(["Next up",`${next[2]==="A"?"at":"vs."} ${next[1]} · ${short(next[0])} · ${when(days(next[0]))}`]);
+  if(og.length)T.push([`Series vs. ${next[1]}`,`${ow>ol?"Alabama leads":ow<ol?"Alabama trails":"Tied"} ${ow}–${ol}${ot?"–"+ot:""}`]);
+ }
+ T.push([`${cur} record`,`${cw}–${cl} overall · ${fw}–${fl} SEC`]);
+ const last=cg[cg.length-1];
+ if(last)T.push(["Last time out",`${last.res} ${last.a}–${last.o} ${last.loc==="A"?"at":"vs."} ${last.opp}`]);
+ const ib=SCHED.find(s=>s[1]==="Auburn"&&s[0]>=iso);
+ if(ib)T.push(["Iron Bowl",`${short(ib[0])} · ${when(days(ib[0]))}`]);
+ const tk=T.map(([k,v])=>`<span><b>${esc(k)}</b>${esc(v)}</span>`);
+ const nk=NEWS.map(n=>`<span><b>${esc(n.t)}</b>${esc(n.h)} <a href="${esc(n.u)}" target="_blank" rel="noopener">${esc(n.s)} ↗</a></span>`);
+ const items=[...tk,...nk].join('<span class="sep">◆</span>');
+ $("ticker").innerHTML=items+'<span class="sep">◆</span>'+items;
  // count-up on the tally
  const nums=[...document.querySelectorAll("#tally b")];
  nums.forEach(b=>{const end=+b.textContent.replace(/,/g,"");if(!isFinite(end)||reduce)return;b.dataset.end=end});
