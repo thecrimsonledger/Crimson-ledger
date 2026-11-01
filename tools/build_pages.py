@@ -123,7 +123,7 @@ def page(path, title, desc, crumbs, h1, lede, tiles, body):
 </head>
 <body>
 <header class="top"><div class="wrap"><a class="brand" href="/">Crimson <span>Ledger</span></a>
-<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a></nav></div></header>
+<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a></nav></div></header>
 <section class="hero"><div class="wrap">
 <div class="crumbs">{crumb_html}</div>
 <h1>{E(h1)}</h1>
@@ -307,11 +307,14 @@ for st in STORIES:
     write(path, page(path, title, st["dek"], [("Home", "/"), ("Stories", "/stories/")], st["title"], E(st["dek"]), st.get("tiles", []), body))
     urls.append((path, st.get("updated", datetime.date.today().isoformat())))
 if STORIES:
-    cards = "".join(f'<a href="/stories/{st["slug"]}/">{E(st["title"])}<small>{E(st["era"])}{" · " + st["date"][:4] if st.get("date") else ""}</small></a>' for st in STORIES)
+    eras = {}
+    for st in STORIES: eras.setdefault(st["era"], []).append(st)
+    cards = "".join(f'<h2>{E(era)}</h2><div class="grid">' + "".join(
+        f'<a href="/stories/{st["slug"]}/">{E(st["title"])}<small>{E(st["dek"])}</small></a>' for st in sts) + "</div>" for era, sts in eras.items())
     write("/stories/", page("/stories/", "Alabama Football Stories | The Crimson Ledger",
           "The stories behind Alabama football's biggest moments, told from the record.",
           [("Home", "/")], "The Story Vault", "The stories behind Alabama football's biggest moments, told from the record.",
-          [("Stories", len(STORIES))], f'<h2>Stories</h2><div class="grid">{cards}</div>'))
+          [("Stories", len(STORIES))], cards))
     urls.append(("/stories/", max(st.get("updated", "") for st in STORIES) or datetime.date.today().isoformat()))
 print(f"stories {len(STORIES)}")
 
