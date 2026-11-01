@@ -2,7 +2,7 @@
 
 Usage (from the repo root): python3 -I tools/build_pages.py
 Reads data/allgames.json plus the season table (SCSV) and titles from tools/page-source.html,
-data/stories.json and data/records.json, and writes vs/, seasons/, stories/, players/, sitemap.xml and robots.txt. Run it after every weekly update.
+data/stories.json and data/records.json, and writes vs/, seasons/, stories/, players/, trivia/, sitemap.xml and robots.txt. Run it after every weekly update.
 """
 import json, re, os, shutil, html, datetime
 
@@ -50,7 +50,7 @@ CSS = """:root{--bg:#EEF0EE;--surface:#fff;--fg:#1A1C1D;--muted:#5F6567;--line:#
 .top .wrap{display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap}
 .brand{font:900 22px/1 var(--display);text-transform:uppercase;color:var(--boardfg);text-decoration:none;margin-right:auto}.brand span{color:var(--gold)}
 .top nav a{font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#C9CDCD;text-decoration:none;padding:8px 0}
-.top nav{display:flex;gap:18px}.top nav a:hover{color:var(--gold)}
+.top nav{display:flex;flex-wrap:wrap;gap:4px 18px;max-width:100%}.top nav a:hover{color:var(--gold)}
 .hero{background:var(--board);color:var(--boardfg);padding:36px 0 34px}
 .crumbs{font:600 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}.crumbs a{color:var(--gold);text-decoration:none}
 h1{font:800 clamp(38px,7vw,72px)/.95 var(--display);text-transform:uppercase;margin:12px 0 14px}
@@ -79,7 +79,7 @@ a{color:inherit}td a{text-decoration-color:var(--line);text-underline-offset:3px
 .grid a:hover{border-color:var(--crim)}.grid small{display:block;color:var(--muted);font:12px/1.4 var(--mono)}
 .cta{display:inline-block;margin-top:22px;font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:13px 18px;background:#9E1B32;color:#fff}
 footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px solid var(--line)}
-@media (max-width:560px){.top nav{gap:14px}h1{margin-top:8px}}
+@media (max-width:560px){.top nav{gap:2px 14px}h1{margin-top:8px}}
 """
 CSS += """
 .story{max-width:68ch;margin:0 auto}.story p{margin:0 0 1.1em;font-size:19px;line-height:1.65}
@@ -128,7 +128,7 @@ def page(path, title, desc, crumbs, h1, lede, tiles, body):
 </head>
 <body>
 <header class="top"><div class="wrap"><a class="brand" href="/">Crimson <span>Ledger</span></a>
-<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a><a href="/players/">Players</a></nav></div></header>
+<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a><a href="/players/">Players</a><a href="/trivia/">Trivia</a></nav></div></header>
 <section class="hero"><div class="wrap">
 <div class="crumbs">{crumb_html}</div>
 <h1>{E(h1)}</h1>
@@ -458,6 +458,157 @@ write("/players/", page("/players/", "Alabama Football Players and Records | The
       [("Players", len(pinfo)), ("Heisman winners", len(HEIS))], pbody))
 urls.append(("/players/", datetime.date.today().isoformat()))
 print(f"players {len(pinfo)}")
+
+
+# ---------- trivia (curated questions from data/trivia.json + questions generated from the game data and Record Book) ----------
+import random
+CURATED = json.load(open(os.path.join(ROOT, "data/trivia.json")))
+STORY_TITLE = {st["slug"]: st["title"] for st in STORIES}
+TQ = []
+def addq(cat, q, a, wrong, x, link, link_text, key):
+    wrong = [w for w in dict.fromkeys(wrong) if w != a]
+    if len(wrong) < 3: return
+    rnd = random.Random(key)
+    TQ.append(dict(c=cat, q=q, a=a, w=rnd.sample(wrong, 3), x=x, l=link, lt=link_text))
+for i, t in enumerate(CURATED):
+    addq("Stories", t["q"], t["a"], t["w"], t["x"], f"/stories/{t['story']}/", f"Read: {STORY_TITLE.get(t['story'], 'the story')}", f"c{i}")
+
+# Record Book: who holds each school record (skipped when the record is shared)
+UNIT_WORD = {"Yards": "yards", "TDs": "touchdowns", "Rec": "catches", "Ints": "interceptions", "Tackles": "tackles", "Sacks": "sacks", "FGs": "field goals"}
+SPAN_Q = {"career": "career", "season": "single-season", "game": "single-game"}
+for cat in REC:
+    for span, rows in cat["v"].items():
+        if len(rows) < 4 or rows[1][0] in ("", "1"): continue
+        if cat["s"] in ("Total yards", "Field goal %"): continue  # repeat the passing records / awkward to ask
+        top = rows[0]
+        names = [r[1] for r in rows[1:] if r[1] != top[1]]
+        if len(set(names)) < 3: continue
+        when = f"{top[3]}" + (f" vs. {top[4]}" if top[4] else "")
+        qtext = ("Who kicked the longest field goal in Alabama history?" if cat["s"] == "Longest field goal"
+                 else f"Who holds Alabama's {SPAN_Q[span]} record for {cat['s'].lower()}?")
+        unit = UNIT_WORD.get(cat["unit"], "")
+        addq("Record Book", qtext, top[1], names,
+             f"{top[1]}: {top[2]}{' ' + unit if unit and not top[2].endswith('%') else ''} ({when}).", f"/players/{slug(top[1])}/", f"{top[1]}'s records", f"r{cat['s']}{span}")
+
+# National title seasons that ended with a bowl or playoff win
+TITLE_COACH = {int(y): c for y, c in re.findall(r'\[(\d{4}),"([A-Za-z]+)"\]', re.search(r"const TITLES=\[(.*?)\];", src).group(1))}
+bowl_wins = [g for g in G if g["note"] and g["res"] == "W" and re.search(r"Bowl|Playoff|BCS", g["note"])]
+post_all = [g for g in G if g["note"] and re.search(r"Bowl|Playoff|BCS|Championship", g["note"]) and "SEC" not in g["note"]]
+for y in sorted(TITLES):
+    gs = sorted([g for g in G if g["s"] == y], key=lambda g: g["d"])
+    if not gs: continue
+    last = gs[-1]
+    if last["note"] and last["res"] == "W" and re.search(r"Bowl|Playoff|BCS|Championship", last["note"]):
+        addq("Championships", f"Alabama finished its {y} national championship season by beating which team in the {last['note']}?",
+             last["opp"], [g["opp"] for g in post_all if g["opp"] != last["opp"] and abs(g["s"] - y) <= 12],
+             f"Alabama won {score(last)} on {fdate(last['d'])}.", f"/seasons/{y}/", f"The {y} season", f"t{y}")
+coaches = sorted(set(TITLE_COACH.values()))
+FULL = {"Wade": "Wallace Wade", "Thomas": "Frank Thomas", "Bryant": "Bear Bryant", "Stallings": "Gene Stallings", "Saban": "Nick Saban"}
+for y, c in TITLE_COACH.items():
+    if c in FULL and y < 1950:  # later title coaches are too easy to be worth asking
+        era_coaches = sorted({v["coach"] for k, v in SEASONS.items() if abs(k - y) <= 30 and v["coach"] != FULL[c]
+                              and sum(1 for z in SEASONS.values() if z["coach"] == v["coach"]) >= 3})
+        addq("Championships", f"Who coached Alabama's {y} national championship team?", FULL[c], era_coaches,
+             f"{y}: {rec(SEASONS[y]['w'], SEASONS[y]['l'], SEASONS[y]['t'])} under {FULL[c]}.", f"/seasons/{y}/", f"The {y} season", f"k{y}")
+
+# Perfect seasons
+perfect = [y for y in years if SEASONS[y]["l"] == 0 and SEASONS[y]["t"] == 0 and SEASONS[y]["w"] >= 9]
+close = [y for y in years if SEASONS[y]["w"] >= 9 and SEASONS[y]["l"] == 1]
+rp = random.Random("perfect")
+for y in perfect:
+    addq("Seasons", "Which of these Alabama teams finished with a perfect record?", str(y), [str(z) for z in rp.sample(close, min(8, len(close)))],
+         f"The {y} team went {SEASONS[y]['w']}–0. The others each lost a game.", f"/seasons/{y}/", f"The {y} season", f"p{y}")
+
+# Series records: never lost to (8+ meetings), and the most-played opponent
+recent = lambda gs: max(g["s"] for g in gs) >= 1960
+never = [o for o, gs in OPP.items() if len(gs) >= 8 and recent(gs) and not any(g["res"] == "L" for g in gs)]
+lost_to = [o for o, gs in OPP.items() if len(gs) >= 8 and recent(gs) and any(g["res"] == "L" for g in gs)]
+for o in never:
+    w, l, t = wl(OPP[o])
+    addq("Rivalries", "Alabama has played each of these teams at least eight times. Which one has never beaten Alabama?", o, lost_to,
+         f"Alabama is {rec(w, l, t)} all-time against {o}.", f"/vs/{slug(o)}/", f"Alabama vs. {o}", f"n{o}")
+most = sorted(OPP.items(), key=lambda kv: -len(kv[1]))
+if len(most[0][1]) > len(most[1][1]):
+    addq("Rivalries", "Which opponent has Alabama played more times than any other?", most[0][0], [o for o, _ in most[1:6]],
+         f"{len(most[0][1])} meetings, more than any other team.", f"/vs/{slug(most[0][0])}/", f"Alabama vs. {most[0][0]}", "most")
+big = max(G, key=lambda g: (g["a"] - g["o"], g["d"]))
+others = sorted([g for g in G if g is not big and g["res"] == "W"], key=lambda g: -(g["a"] - g["o"]))[:8]
+addq("Rivalries", "What is the most lopsided win in Alabama history?", f"{score(big)} vs. {big['opp']}, {big['d'][:4]}",
+     [f"{score(g)} vs. {g['opp']}, {g['d'][:4]}" for g in others], f"Alabama beat {big['opp']} {score(big)} on {fdate(big['d'])}.",
+     f"/seasons/{big['s']}/", f"The {big['s']} season", "big")
+
+cats = {}
+for q in TQ: cats[q["c"]] = cats.get(q["c"], 0) + 1
+TCSS = """<style>
+.label{font:600 12px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tq{max-width:640px;margin:28px auto 0}.tq .meta{display:flex;justify-content:space-between;font:600 12px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tq .bar{height:4px;background:var(--line);margin:10px 0 22px}.tq .bar i{display:block;height:100%;background:var(--crim);width:0;transition:width .3s}
+.tq h2{border:0;padding:0;margin:0 0 18px;font-size:clamp(24px,5vw,32px);line-height:1.1;text-transform:none}
+.opts{display:grid;gap:10px}.opts button{font:17px/1.35 var(--body);text-align:left;padding:14px 16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;cursor:pointer}
+.opts button:hover:not(:disabled){border-color:var(--fg)}.opts button:disabled{cursor:default}
+.opts button.ok{border-color:#1F7A44;background:rgba(31,122,68,.12)}.opts button.no{border-color:var(--crim);background:rgba(158,27,50,.1)}
+.why{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--crim);padding:14px 16px}.why b{font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.why p{margin:6px 0 8px}.why a{font:600 13px/1 var(--mono);text-underline-offset:3px}
+.tbtn{font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:13px 18px;border:0;background:#9E1B32;color:#fff;border-radius:2px;cursor:pointer;margin-top:18px}
+.tbtn.alt{background:transparent;color:var(--fg);border:1px solid var(--fg)}
+.done{text-align:center}.done .big{font:900 clamp(72px,18vw,120px)/1 var(--display);color:var(--crim)}.done .sq{font-size:22px;letter-spacing:2px;margin:6px 0 4px}
+.tmode{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}.tmode .tbtn{margin-top:10px}
+@media (prefers-color-scheme:dark){.opts button.ok{border-color:#5CC98A}}
+</style>"""
+TJS = """<script>
+const Q=__Q__;
+(()=>{const $=id=>document.getElementById(id),box=$("tq");
+const today=new Date(),ds=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+ return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
+function shuffle(a,r){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pick(seed){const r=rng(seed),by={};Q.forEach((q,i)=>(by[q.c]=by[q.c]||[]).push(i));
+ const plan={"Stories":4,"Record Book":3,"Championships":1,"Seasons":1,"Rivalries":1},out=[];
+ Object.entries(plan).forEach(([c,n])=>out.push(...shuffle(by[c]||[],r).slice(0,n)));
+ const rest=shuffle(Q.map((_,i)=>i).filter(i=>!out.includes(i)),r);while(out.length<10&&rest.length)out.push(rest.pop());
+ return shuffle(out,r).map(i=>{const q=Q[i];return{...q,o:shuffle([q.a,...q.w],r)}})}
+let set,n,score,marks,daily;
+function start(isDaily){daily=isDaily;set=pick(isDaily?"daily-"+ds:"r"+Math.random());n=0;score=0;marks=[];show()}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function show(){const q=set[n];box.innerHTML=`<div class="meta"><span>${daily?"Daily 10 · "+ds:"Practice round"}</span><span>${n+1} of ${set.length} · ${score} right</span></div>
+ <div class="bar"><i style="width:${n/set.length*100}%"></i></div><div class="label">${esc(q.c)}</div><h2>${esc(q.q)}</h2>
+ <div class="opts">${q.o.map((o,i)=>`<button type="button" data-i="${i}">${esc(o)}</button>`).join("")}</div><div id="why"></div>`;
+ box.querySelectorAll(".opts button").forEach(b=>b.addEventListener("click",()=>answer(b)))}
+function answer(b){const q=set[n],pickd=q.o[+b.dataset.i],ok=pickd===q.a;if(ok)score++;marks.push(ok);
+ box.querySelectorAll(".opts button").forEach(x=>{x.disabled=true;if(q.o[+x.dataset.i]===q.a)x.classList.add("ok");else if(x===b)x.classList.add("no")});
+ $("why").innerHTML=`<div class="why"><b>${ok?"Correct":"The answer: "+esc(q.a)}</b><p>${esc(q.x)}</p><a href="${q.l}">${esc(q.lt)} →</a></div>
+ <button type="button" class="tbtn" id="next">${n+1<set.length?"Next question":"See your score"}</button>`;
+ $("next").addEventListener("click",()=>{n++;n<set.length?show():finish()});$("next").focus({preventScroll:true})}
+function finish(){const sq=marks.map(m=>m?"🟥":"⬜").join("");let best="";
+ if(daily){try{localStorage.setItem("cl-trivia-"+ds,String(score))}catch(e){}}
+ const line=score>=9?"Hall of Famer.":score>=7?"All-SEC.":score>=5?"Starter.":"Back to the film room.";
+ box.innerHTML=`<div class="done"><div class="label">${daily?"Daily 10 · "+ds:"Practice round"}</div><div class="big">${score}/${set.length}</div>
+ <div class="sq">${sq}</div><p>${line}</p>
+ <div class="tmode"><button type="button" class="tbtn" id="share">Share your score</button><button type="button" class="tbtn alt" id="again">Practice round</button></div>
+ <p class="note" id="sharemsg"></p><p class="note">${daily?"A new Daily 10 comes out every day at midnight.":"Practice rounds are random. The Daily 10 is the same for everyone each day."}</p></div>`;
+ $("again").addEventListener("click",()=>start(false));
+ $("share").addEventListener("click",async()=>{const t=`The Crimson Ledger ${daily?"Daily 10 · "+ds:"trivia"}: ${score}/${set.length}\\n${sq}\\nthecrimsonledger.com/trivia/`;
+  try{if(navigator.share){await navigator.share({text:t});return}await navigator.clipboard.writeText(t);$("sharemsg").textContent="Copied. Paste it anywhere."}
+  catch(e){$("sharemsg").textContent=t}})}
+let prev=null;try{prev=localStorage.getItem("cl-trivia-"+ds)}catch(e){}
+box.innerHTML=`<div class="done"><div class="label">Daily 10 · ${ds}</div><h2 style="text-align:center">Ten questions on Alabama football history</h2>
+ <p>Everyone gets the same ten today. Every answer comes from the games, the Record Book or our stories.</p>
+ ${prev!==null?`<p class="note">You scored ${prev}/10 on today's set.</p>`:""}
+ <div class="tmode"><button type="button" class="tbtn" id="go">${prev!==null?"Play today's again":"Start the Daily 10"}</button><button type="button" class="tbtn alt" id="prac">Practice round</button></div></div>`;
+$("go").addEventListener("click",()=>start(true));$("prac").addEventListener("click",()=>start(false));
+})();
+</script>"""
+tbody = (TCSS + '<div class="tq" id="tq" aria-live="polite"></div>' +
+         f'<p class="note" style="max-width:640px;margin:28px auto 0">{len(TQ)} questions in the bank: ' +
+         ", ".join(f"{v} {k.lower()}" for k, v in cats.items()) +
+         ". Record Book questions use the same Wikipedia leader tables as the Record Book, and update with it each week.</p>" +
+         TJS.replace("__Q__", json.dumps(TQ, ensure_ascii=False).replace("</", "<\\/")))
+write("/trivia/", page("/trivia/", "Alabama Football Trivia: The Daily 10 | The Crimson Ledger",
+      "Ten Alabama football history questions every day, from the Rocky Block to the Record Book. Every answer is checked against the games and the stories.",
+      [("Home", "/")], "Alabama Trivia", "A new set of ten questions every day, from the Rose Bowl in 1926 to last season's Record Book. Every answer comes with the story behind it.",
+      [], tbody))
+urls.append(("/trivia/", datetime.date.today().isoformat()))
+print(f"trivia {len(TQ)} questions: {cats}")
 
 # ---------- sitemap + robots ----------
 today = datetime.date.today().isoformat()

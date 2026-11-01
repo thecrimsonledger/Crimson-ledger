@@ -26,7 +26,7 @@
 .top .wrap{display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap}
 .brand{font:900 22px/1 var(--display);text-transform:uppercase;color:var(--boardfg);text-decoration:none;margin-right:auto}.brand span{color:var(--gold)}
 .top nav a{font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#C9CDCD;text-decoration:none;padding:8px 0}
-.top nav{display:flex;gap:18px}.top nav a:hover{color:var(--gold)}
+.top nav{display:flex;flex-wrap:wrap;gap:4px 18px;max-width:100%}.top nav a:hover{color:var(--gold)}
 .hero{background:var(--board);color:var(--boardfg);padding:36px 0 34px}
 .crumbs{font:600 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}.crumbs a{color:var(--gold);text-decoration:none}
 h1{font:800 clamp(38px,7vw,72px)/.95 var(--display);text-transform:uppercase;margin:12px 0 14px}
@@ -55,7 +55,7 @@ a{color:inherit}td a{text-decoration-color:var(--line);text-underline-offset:3px
 .grid a:hover{border-color:var(--crim)}.grid small{display:block;color:var(--muted);font:12px/1.4 var(--mono)}
 .cta{display:inline-block;margin-top:22px;font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:13px 18px;background:#9E1B32;color:#fff}
 footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px solid var(--line)}
-@media (max-width:560px){.top nav{gap:14px}h1{margin-top:8px}}
+@media (max-width:560px){.top nav{gap:2px 14px}h1{margin-top:8px}}
 
 .story{max-width:68ch;margin:0 auto}.story p{margin:0 0 1.1em;font-size:19px;line-height:1.65}
 .story h2{font-size:clamp(24px,4vw,32px);margin:38px 0 14px}
@@ -73,7 +73,7 @@ footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px soli
 </head>
 <body>
 <header class="top"><div class="wrap"><a class="brand" href="/">Crimson <span>Ledger</span></a>
-<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a><a href="/players/">Players</a></nav></div></header>
+<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a><a href="/players/">Players</a><a href="/trivia/">Trivia</a></nav></div></header>
 <section class="hero"><div class="wrap">
 <div class="crumbs"><a href="/">Home</a> · <a href="/stories/">Stories</a></div>
 <h1>The Rocky Block</h1>
