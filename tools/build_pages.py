@@ -149,6 +149,10 @@ def write(path, text):
 FLAG = {1: " †", 2: " ‡"}
 FLAG_NOTE = '<p class="note">† Result disputed between sources. ‡ Result not independently verified.</p>'
 
+def story_link(g):
+    st = STORY_BY_GAME.get(g["d"])
+    return f'{" · " if g["note"] or g["conf"] else ""}<a href="/stories/{st["slug"]}/">Read the story</a>' if st else ""
+
 def game_table(gs, show_opp, show_season=False, show_coach=False):
     head = "<tr><th>Date</th>" + ("<th>Opponent</th>" if show_opp else "") + "<th>Site</th><th>Result</th><th class=\"num\">Score</th>" + \
            ("<th>Coach</th>" if show_coach else "") + "<th>Notes</th></tr>"
@@ -159,11 +163,27 @@ def game_table(gs, show_opp, show_season=False, show_coach=False):
         notes = ", ".join(x for x in [g["note"], "Conference game" if g["conf"] and not g["note"] else ""] if x)
         coach = f"<td>{E(g['coach'])}</td>" if show_coach else ""
         rows.append(f'<tr><td>{date}</td>{opp}<td>{E(site_txt(g))}</td><td class="{g["res"]}">{g["res"]}</td>'
-                    f'<td class="num">{score(g)}{FLAG.get(g["flag"], "")}</td>{coach}<td class="wrap-ok">{E(notes)}</td></tr>')
+                    f'<td class="num">{score(g)}{FLAG.get(g["flag"], "")}</td>{coach}<td class="wrap-ok">{E(notes)}{story_link(g)}</td></tr>')
     note = FLAG_NOTE if any(g["flag"] for g in gs) else ""
     return f'<div class="tbl"><table><thead>{head}</thead><tbody>{"".join(rows)}</tbody></table></div>{note}'
 
 urls = []
+
+# ---------- story links (each story attaches to its game's season and opponent, plus any extra seasons/opponents it lists) ----------
+STORIES = json.load(open(os.path.join(ROOT, "data/stories.json")))
+GBD = {g["d"]: g for g in G}
+STORY_BY_SEASON, STORY_BY_OPP, STORY_BY_GAME = {}, {}, {}
+for st in STORIES:
+    g = GBD.get(st.get("date") or "")
+    seasons = st.get("seasons") if "seasons" in st else ([g["s"]] if g else [])
+    opps = st.get("opponents") if "opponents" in st else ([g["opp"]] if g else [])
+    for y in seasons: STORY_BY_SEASON.setdefault(int(y), []).append(st)
+    for o in opps: STORY_BY_OPP.setdefault(o, []).append(st)
+    if g and st.get("game_link", True): STORY_BY_GAME[g["d"]] = st
+def story_cards(sts):
+    if not sts: return ""
+    return ('<h2>Stories</h2><div class="grid">' + "".join(
+        f'<a href="/stories/{st["slug"]}/">{E(st["title"])}<small>{E(st["dek"])}</small></a>' for st in sts) + "</div>")
 
 # ---------- opponent pages ----------
 OPP = {}
@@ -209,6 +229,7 @@ for opp, gs in OPP.items():
             "".join(f'<div class="fact"><span>{E(k)}</span>{E(v)}</div>' for k, v in facts) + "</div>")
     if len(pc) > 1:
         body += f'<h2>By Alabama coach</h2><div class="tbl"><table><thead><tr><th>Coach</th><th class="num">Games</th><th class="num">Record</th></tr></thead><tbody>{coach_rows}</tbody></table></div>'
+    body += story_cards(STORY_BY_OPP.get(opp, []))
     body += f"<h2>Every game</h2>" + game_table(list(reversed(gs)), False, show_season=True, show_coach=True)
     body += '<a class="cta" href="/vs/">All Alabama opponents</a>'
     path = f"/vs/{slug(opp)}/"
@@ -242,6 +263,7 @@ for i, y in enumerate(years):
         body += '<h2>Postseason</h2><div class="facts">' + "".join(
             f'<div class="fact"><span>{E(g["note"])}</span>{word[g["res"]]} {score(g)} vs. <a href="/vs/{slug(g["opp"])}/">{E(g["opp"])}</a> · {fdate(g["d"])}</div>'
             for g in post_games) + "</div>"
+    body += story_cards(STORY_BY_SEASON.get(y, []))
     body += "<h2>Schedule and results</h2>" + game_table(gs, True)
     if live:
         played = {g["d"] for g in gs}
@@ -289,8 +311,6 @@ urls.append(("/seasons/", G[-1]["d"]))
 # ---------- stories ----------
 def para(t):
     return f"<h2>{E(t[3:])}</h2>" if t.startswith("## ") else f"<p>{E(t)}</p>"
-STORIES = json.load(open(os.path.join(ROOT, "data/stories.json")))
-GBD = {g["d"]: g for g in G}
 if os.path.isdir(os.path.join(ROOT, "stories")): shutil.rmtree(os.path.join(ROOT, "stories"))
 for st in STORIES:
     path = f"/stories/{st['slug']}/"
