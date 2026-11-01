@@ -433,7 +433,7 @@ def pcard(nm, ps, n, r, hz, sp):
             (f" · {r} record{'s' if r != 1 else ''}" if r else "") + "</small></a>")
 pkey = lambda x: (-x[3], -x[2], x[0])
 heis_p = sorted([x for x in pinfo if x[4]], key=lambda x: x[4])
-pgroups = {g: sorted([x for x in pinfo if not x[4] and primary_group(x[0]) == g], key=pkey) for g in GROUP_ORDER}
+pgroups = {g: sorted([x for x in pinfo if primary_group(x[0]) == g], key=pkey) for g in GROUP_ORDER}
 pdecs = sorted({first_year(x[5]) // 10 * 10 for x in pinfo if first_year(x[5])})
 pchips = '<button type="button" data-g="" aria-pressed="true">All</button>' + "".join(
     f'<button type="button" data-g="{g}" aria-pressed="false">{GROUP_LABEL[g]}</button>' for g in GROUP_ORDER if pgroups[g])
