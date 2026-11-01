@@ -18,7 +18,7 @@ def disp(size, weight=800):
 def mono(size, bold=False):
     return ImageFont.truetype(os.path.join(FONTS, "PlexMono-SemiBold.ttf" if bold else "PlexMono-Regular.ttf"), size)
 
-NICK = {"1926-01-01":"The South's arrival","1962-01-01":"Bryant's first title capper","1966-01-01":"Back-to-back titles","1967-12-02":"Run in the Mud","1972-12-02":"Punt Bama Punt","1979-01-01":"The Goal Line Stand","1981-11-28":"Bryant's 315th win","1985-11-30":"Van Tiffin's 52-yarder","1993-01-01":"Upsetting the champs","2009-12-05":"Saban's first SEC title","2010-01-07":"Title No. 13","2010-11-26":"The Camback","2011-11-05":"Game of the Century","2012-01-09":"The rematch shutout","2013-01-07":"Back-to-back","2013-11-30":"Kick Six","2016-01-11":"The onside kick","2018-01-08":"2nd and 26","2021-01-11":"The COVID-season title","2021-11-27":"Four overtimes","2023-11-25":"4th and 31","2023-12-02":"Ending Georgia's 29-game streak","2024-01-01":"Saban's last game","1893-02-22":"The first Iron Bowl","1948-12-04":"The series returns"}
+NICK = {"1926-01-01":"The South's arrival","1962-01-01":"Bryant's first title capper","1966-01-01":"Back-to-back titles","1967-12-02":"Run in the Mud","1972-12-02":"Punt Bama Punt","1979-01-01":"The Goal Line Stand","1981-11-28":"Bryant's 315th win","1985-11-30":"Van Tiffin's 52-yarder","1993-01-01":"Upsetting the champs","2009-12-05":"Saban's first SEC title","2010-01-07":"Title No. 13","2010-11-26":"The Camback","2011-11-05":"Game of the Century","2012-01-09":"The rematch shutout","2013-01-07":"Back-to-back","2009-10-24":"The Rocky Block","2016-01-11":"The onside kick","2018-01-08":"2nd and 26","2021-01-11":"The COVID-season title","2021-11-27":"Four overtimes","2023-11-25":"4th and 31","2023-12-02":"Ending Georgia's 29-game streak","2024-01-01":"Saban's last game","1893-02-22":"The first Iron Bowl","1948-12-04":"The series returns"}
 RAW = json.load(open(os.path.join(HERE, "allgames.json")))
 GAMES = [dict(d=r[0], s=r[1], y=int(r[0][:4]), opp=r[2], loc=r[3], res=r[4], a=r[5], o=r[6], note=r[8], site=r[9], n=NICK.get(r[0], "")) for r in RAW]
 
@@ -108,7 +108,7 @@ def series_cards(opp, when, where):
              ("Last meeting", f"{gs[-1]['res']} {gs[-1]['a']}–{gs[-1]['o']}, {gs[-1]['y']}")]
     home = [g for g in gs if g["loc"] == where]
     hw = sum(g["res"] == "W" for g in home); hl = sum(g["res"] == "L" for g in home)
-    stats.append(("At their place" if where == "A" else "At home", rec(hw, hl, len(home)-hw-hl)))
+    stats.append((f"Record at {opp}" if where == "A" else "Record at neutral sites" if where == "N" else "Record in Tuscaloosa", rec(hw, hl, len(home)-hw-hl)))
     y = 1110
     for k_, v in stats:
         d.line([72, y, W-72, y], fill=LINE, width=2)
