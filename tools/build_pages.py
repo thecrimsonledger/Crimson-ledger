@@ -2,7 +2,7 @@
 
 Usage (from the repo root): python3 -I tools/build_pages.py
 Reads data/allgames.json plus the season table (SCSV) and titles from tools/page-source.html,
-and writes vs/, seasons/, sitemap.xml and robots.txt. Run it after every weekly update.
+and data/stories.json, and writes vs/, seasons/, stories/, sitemap.xml and robots.txt. Run it after every weekly update.
 """
 import json, re, os, shutil, html, datetime
 
@@ -81,6 +81,15 @@ a{color:inherit}td a{text-decoration-color:var(--line);text-underline-offset:3px
 footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px solid var(--line)}
 @media (max-width:560px){.top nav{gap:14px}h1{margin-top:8px}}
 """
+CSS += """
+.story{max-width:68ch;margin:0 auto}.story p{margin:0 0 1.1em;font-size:19px;line-height:1.65}
+.story h2{font-size:clamp(24px,4vw,32px);margin:38px 0 14px}
+.story p:first-of-type::first-letter{float:left;font:900 74px/.8 var(--display);color:var(--crim);margin:6px 10px 0 0}
+.kicker{font:600 12px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:30px 0 0}
+.src{max-width:68ch;margin:36px auto 0;font-size:14px;color:var(--muted)}.src ol{padding-left:20px}.src a{text-underline-offset:3px}
+.more{max-width:68ch;margin:28px auto 0}
+"""
+
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900'
          '&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@600&display=swap">')
@@ -276,6 +285,35 @@ write("/seasons/", page("/seasons/", "Alabama Football Season-by-Season Records 
       f"{len(years)} seasons of Alabama football, {years[0]} to {years[-1]}. No team played in 1898, 1918 or 1943. ★ marks a national championship Alabama claims.",
       [("Seasons", len(years)), ("National titles", len(TITLES))], body))
 urls.append(("/seasons/", G[-1]["d"]))
+
+# ---------- stories ----------
+def para(t):
+    return f"<h2>{E(t[3:])}</h2>" if t.startswith("## ") else f"<p>{E(t)}</p>"
+STORIES = json.load(open(os.path.join(ROOT, "data/stories.json")))
+GBD = {g["d"]: g for g in G}
+if os.path.isdir(os.path.join(ROOT, "stories")): shutil.rmtree(os.path.join(ROOT, "stories"))
+for st in STORIES:
+    path = f"/stories/{st['slug']}/"
+    g = GBD.get(st.get("date") or "")
+    links = ""
+    if g:
+        links = (f'<div class="more facts"><div class="fact"><span>In the Game Book</span>{"Won" if g["res"]=="W" else "Lost" if g["res"]=="L" else "Tied"} {score(g)} '
+                 f'{"at" if g["loc"]=="A" else "vs."} <a href="/vs/{slug(g["opp"])}/">{E(g["opp"])}</a> · <a href="/seasons/{g["s"]}/">The {g["s"]} season</a></div></div>')
+    srcs = "".join(f'<li><a href="{E(u)}" rel="nofollow">{E(n)}</a></li>' for n, u in st.get("sources", []))
+    body = (f'<p class="kicker story">{E(st["era"])}</p><article class="story">' + "".join(para(t) for t in st["body"]) + "</article>"
+            + links + (f'<div class="src"><b>Sources</b><ol>{srcs}</ol></div>' if srcs else "")
+            + '<div class="more"><a class="cta" href="/stories/">More stories</a></div>')
+    title = f"{st['title']}: {fdate(st['date']) if st.get('date') else st['era']} | The Crimson Ledger"
+    write(path, page(path, title, st["dek"], [("Home", "/"), ("Stories", "/stories/")], st["title"], E(st["dek"]), st.get("tiles", []), body))
+    urls.append((path, st.get("updated", datetime.date.today().isoformat())))
+if STORIES:
+    cards = "".join(f'<a href="/stories/{st["slug"]}/">{E(st["title"])}<small>{E(st["era"])}{" · " + st["date"][:4] if st.get("date") else ""}</small></a>' for st in STORIES)
+    write("/stories/", page("/stories/", "Alabama Football Stories | The Crimson Ledger",
+          "The stories behind Alabama football's biggest moments, told from the record.",
+          [("Home", "/")], "The Story Vault", "The stories behind Alabama football's biggest moments, told from the record.",
+          [("Stories", len(STORIES))], f'<h2>Stories</h2><div class="grid">{cards}</div>'))
+    urls.append(("/stories/", max(st.get("updated", "") for st in STORIES) or datetime.date.today().isoformat()))
+print(f"stories {len(STORIES)}")
 
 # ---------- sitemap + robots ----------
 today = datetime.date.today().isoformat()

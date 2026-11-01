@@ -54,6 +54,7 @@ section{padding-block:48px 8px}
 .series li{background:var(--surface);padding:18px 18px 20px;display:grid;grid-template-rows:auto auto 1fr auto;gap:8px;min-width:0}
 .series h3{font-size:26px;font-weight:800;text-transform:uppercase}
 .series p{margin:0;font-size:16px}
+.series .rd{font:600 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--crim);white-space:nowrap}
 .score{font:600 13px/1.4 var(--mono);font-variant-numeric:tabular-nums}
 .won{color:var(--crim)}.lost{color:var(--opp)}
 /* game book */
@@ -381,7 +382,7 @@ const STORIES=[
  ["The Saban Era","Nine to Nothing, Then Twenty-One","2012-01-09","Losing the Game of the Century, then shutting LSU out in the rematch."],
  ["The Saban Era","2nd and 26","2018-01-08","A freshman quarterback off the bench and one throw in overtime."],
  ["The Saban Era","Four Heismans",null,"Ingram, Henry, Smith and Young: one Tuscaloosa trophy case."],
- ["The Saban Era","The Rocky Block","2009-10-24","Tennessee lines up a 44-yard kick to win it. Terrence Cody gets a hand on it, and the title run lives."]
+ ["The Saban Era","The Rocky Block","2009-10-24","Tennessee lines up a 44-yard kick to win it. Terrence Cody gets a hand on it, and the title run lives.","/stories/rocky-block/"]
 ];
 
 const fmt=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
@@ -606,10 +607,10 @@ $("coaches").innerHTML=[...CM.values()].sort((a,b)=>b.w-a.w).map(c=>`<tr><td>${c
 const ERAS=["All",...new Set(STORIES.map(s=>s[0]))];let era="All";
 function drawStories(){
  $("eras").innerHTML=ERAS.map(e=>`<button type="button" aria-pressed="${e===era}" data-e="${e}">${e}</button>`).join("");
- $("series").innerHTML=STORIES.filter(s=>era==="All"||s[0]===era).map(([e,t,d,b])=>{
+ $("series").innerHTML=STORIES.filter(s=>era==="All"||s[0]===era).map(([e,t,d,b,u])=>{
   const g=d&&G.find(x=>x.d===d);
-  return `<li><span class="label">${e}</span><h3>${t}</h3><p>${b}</p>
-  <span class="score ${g?(g.res==="W"?"won":"lost"):""}">${g?`${line(g)} · ${g.y}`:"Feature episode"}</span></li>`}).join("");
+  return `<li><span class="label">${e}</span><h3>${u?`<a class="pl" href="${u}">${t}</a>`:t}</h3><p>${b}${u?` <a class="pl rd" href="${u}">Read the story →</a>`:""}</p>
+  <span class="score ${g?(g.res==="W"?"won":"lost"):""}">${g?`${line(g)} · ${g.y}`:"Feature story"}</span></li>`}).join("");
 }
 $("eras").addEventListener("click",e=>{const b=e.target.closest("button");if(b){era=b.dataset.e;drawStories()}});
 drawStories();
