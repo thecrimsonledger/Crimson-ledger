@@ -2,7 +2,7 @@
 
 Usage (from the repo root): python3 -I tools/build_pages.py
 Reads data/allgames.json plus the season table (SCSV) and titles from tools/page-source.html,
-and data/stories.json, and writes vs/, seasons/, stories/, sitemap.xml and robots.txt. Run it after every weekly update.
+data/stories.json and data/records.json, and writes vs/, seasons/, stories/, players/, sitemap.xml and robots.txt. Run it after every weekly update.
 """
 import json, re, os, shutil, html, datetime
 
@@ -123,7 +123,7 @@ def page(path, title, desc, crumbs, h1, lede, tiles, body):
 </head>
 <body>
 <header class="top"><div class="wrap"><a class="brand" href="/">Crimson <span>Ledger</span></a>
-<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a></nav></div></header>
+<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a><a href="/players/">Players</a></nav></div></header>
 <section class="hero"><div class="wrap">
 <div class="crumbs">{crumb_html}</div>
 <h1>{E(h1)}</h1>
@@ -337,6 +337,90 @@ if STORIES:
           [("Stories", len(STORIES))], cards))
     urls.append(("/stories/", max(st.get("updated", "") for st in STORIES) or datetime.date.today().isoformat()))
 print(f"stories {len(STORIES)}")
+
+
+# ---------- player pages (from the Record Book in data/records.json) ----------
+REC = json.load(open(os.path.join(ROOT, "data/records.json")))
+HEIS = {n: int(y) for n, y in re.findall(r'\["([^"]+)",(\d{4})\]', re.search(r"const HEISMAN=\[(.*?)\];", src).group(1))}
+SPAN_NAME = {"career": "Career", "season": "Season", "game": "Single game"}
+def name_variants(n):
+    v = {n}
+    base = re.sub(r",? (Jr\.|Sr\.|II|III|IV)$", "", n); v.add(base)
+    for x in list(v): v.add(re.sub(r"\b([A-Z])\. ([A-Z])\. ", r"\1\2 ", x))
+    return v
+def yrs(t):
+    m = re.match(r"(\d{4})(?:[–-](\d{2,4}))?$", t.strip())
+    if not m: return []
+    a = int(m.group(1)); b = m.group(2)
+    if not b: return [a]
+    b = int(b) if len(b) == 4 else int(str(a)[:2] + b)
+    return list(range(a, b + 1))
+PLAYERS = {}
+for cat in REC:
+    for span, rows in cat["v"].items():
+        rank = ""
+        for row in rows:
+            rank = row[0] or rank
+            PLAYERS.setdefault(row[1], []).append(dict(g=cat["g"], s=cat["s"], span=span, rank=int(rank) if rank.isdigit() else 99,
+                                                        val=row[2], yr=row[3], opp=row[4]))
+OPP_SLUGS = {slug(o) for o in OPP}
+def opp_link(t):
+    o = re.sub(r"\s*\(.*\)$", "", t).strip()
+    return f'<a href="/vs/{slug(o)}/">{E(t)}</a>' if slug(o) in OPP_SLUGS else E(t)
+def yr_link(t):
+    y = yrs(t)
+    return f'<a href="/seasons/{y[0]}/">{E(t)}</a>' if len(y) == 1 and y[0] in SEASONS else E(t)
+if os.path.isdir(os.path.join(ROOT, "players")): shutil.rmtree(os.path.join(ROOT, "players"))
+through = re.search(r"Individual leaders · through ([^<]+)<", src)
+through = through.group(1).strip() if through else ""
+pinfo = []
+for name, ents in PLAYERS.items():
+    ents.sort(key=lambda e: (e["rank"], ["career", "season", "game"].index(e["span"])))
+    allyrs = sorted({y for e in ents for y in yrs(e["yr"])})
+    span_txt = (f"{allyrs[0]}–{allyrs[-1]}" if allyrs[0] != allyrs[-1] else str(allyrs[0])) if allyrs else ""
+    recs = [e for e in ents if e["rank"] == 1]
+    heis = next((y for hn, y in HEIS.items() if hn in name_variants(name) or name in name_variants(hn)), None)
+    vs = name_variants(name)
+    sts = [st for st in STORIES if any(v in " ".join(st["body"]) + st["dek"] for v in vs)]
+    p_slug = slug(name); path = f"/players/{p_slug}/"
+    n = len(ents)
+    lede = (f"{E(name)} appears {n} time{'s' if n != 1 else ''} among Alabama's statistical leaders" +
+            (f", including {len(recs)} school record{'s' if len(recs) != 1 else ''}" if recs else "") + "." +
+            (f" He won the Heisman Trophy in {heis}." if heis else "") +
+            (f" Record Book through {E(through)}." if through else ""))
+    tiles = ([("Heisman Trophy", heis)] if heis else []) + [("Record Book spots", n), ("School records", len(recs))] + ([("Seasons", span_txt)] if span_txt else [])
+    body = ""
+    if recs:
+        body += '<h2>School records</h2><div class="facts">' + "".join(
+            f'<div class="fact"><span>{E(SPAN_NAME[e["span"]])} {E(e["s"].lower())}</span>{E(e["val"])} · {yr_link(e["yr"])}' +
+            (f' vs. {opp_link(e["opp"])}' if e["opp"] else "") + "</div>" for e in recs) + "</div>"
+    body += ('<h2>In the Record Book</h2><div class="tbl"><table><thead><tr><th class="num">Rank</th><th>Stat</th><th>Type</th>'
+             '<th class="num">Total</th><th>Year</th><th>Opponent</th></tr></thead><tbody>' + "".join(
+        f'<tr><td class="num">{e["rank"] if e["rank"] < 99 else "—"}</td><td>{E(e["s"])}</td><td>{SPAN_NAME[e["span"]]}</td>'
+        f'<td class="num">{E(e["val"])}</td><td>{yr_link(e["yr"])}</td><td class="wrap-ok">{opp_link(e["opp"]) if e["opp"] else ""}</td></tr>' for e in ents) +
+        "</tbody></table></div>")
+    body += story_cards(sts)
+    seas = [y for y in allyrs if y in SEASONS]
+    if seas:
+        body += '<h2>His seasons</h2><div class="grid">' + "".join(
+            f'<a href="/seasons/{y}/">{y}<small>{rec(SEASONS[y]["w"], SEASONS[y]["l"], SEASONS[y]["t"])} · {E(SEASONS[y]["coach"])}</small></a>' for y in seas) + "</div>"
+    body += ('<p class="note">Ranks are top-10 Alabama marks from Wikipedia\'s Alabama statistical leaders tables, refreshed weekly. '
+             'That page carries a disputed-accuracy notice, so treat lower-ranked entries as unverified until checked against Alabama\'s official record book.</p>'
+             '<a class="cta" href="/players/">All players</a>')
+    title = f"{name}: Alabama Football Records and Stats | The Crimson Ledger"
+    desc = re.sub("<[^>]+>", "", html.unescape(lede))
+    write(path, page(path, title, desc, [("Home", "/"), ("Players", "/players/")], name, lede, tiles, body))
+    urls.append((path, datetime.date.today().isoformat()))
+    pinfo.append((name, p_slug, n, len(recs), heis, span_txt))
+pinfo.sort(key=lambda x: (x[4] is None, -x[3], -x[2], x[0]))
+cards = "".join(f'<a href="/players/{ps}/">{E(nm)}{" ★" if hz else ""}<small>{n} Record Book spot{"s" if n != 1 else ""}' +
+                (f" · {r} record{'s' if r != 1 else ''}" if r else "") + f" · {sp}</small></a>" for nm, ps, n, r, hz, sp in pinfo)
+write("/players/", page("/players/", "Alabama Football Players and Records | The Crimson Ledger",
+      "Every player in Alabama football's statistical Record Book: school records, top-10 marks, Heisman winners and the seasons they played.",
+      [("Home", "/")], "The Players", f"{len(pinfo)} players appear among Alabama's top-10 statistical leaders. ★ marks a Heisman Trophy winner.",
+      [("Players", len(pinfo)), ("Heisman winners", len(HEIS))], f'<h2>Heisman winners first, then by school records</h2><div class="grid">{cards}</div>'))
+urls.append(("/players/", datetime.date.today().isoformat()))
+print(f"players {len(pinfo)}")
 
 # ---------- sitemap + robots ----------
 today = datetime.date.today().isoformat()
