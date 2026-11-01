@@ -418,7 +418,7 @@ for name, ents in PLAYERS.items():
     urls.append((path, datetime.date.today().isoformat()))
     pinfo.append((name, p_slug, n, len(recs), heis, span_txt))
 GROUP_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Kicking"]
-GROUP_LABEL = {"Passing": "Passers", "Rushing": "Runners", "Receiving": "Receivers", "Defense": "Defenders", "Kicking": "Kickers"}
+GROUP_LABEL = {"Passing": "Passing", "Rushing": "Rushing", "Receiving": "Receiving", "Defense": "Defense", "Kicking": "Kicking"}
 def primary_group(name):
     cnt = {}
     for e in PLAYERS[name]:
@@ -446,15 +446,15 @@ gb.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
 pbody = ('<div class="pf"><input id="pq" type="search" placeholder="Find a player…" aria-label="Find a player">'
          '<select id="pd" aria-label="Filter by era"><option value="">All eras</option>' +
          "".join(f'<option value="{d}">{d}s</option>' for d in reversed(pdecs)) + '</select></div>'
-         f'<div class="chips" id="pg" role="group" aria-label="Filter by group">{pchips}</div>'
-         f'<section data-sec="heis"><h2>Heisman winners</h2><div class="grid">{"".join(pcard(*x) for x in heis_p)}</div></section>' +
+         f'<div class="chips" id="pg" role="group" aria-label="Filter by category">{pchips}</div>'
+         f'<section data-sec="heis"><h2>Heisman Trophy Winners</h2><div class="grid">{"".join(pcard(*x) for x in heis_p)}</div></section>' +
          "".join(f'<section data-sec="{g}"><h2>{GROUP_LABEL[g]}</h2><div class="grid">{"".join(pcard(*x) for x in pgroups[g])}</div></section>'
                  for g in GROUP_ORDER if pgroups[g]) +
          '<p class="note" id="pnone" hidden>No players match.</p>'
-         '<p class="note">Players are grouped by where most of their Record Book spots come from. Within each group, school records come first, then total top-10 spots. Eras go by first season.</p>' + PSCRIPT)
+         '<p class="note">Each player is listed under the category where most of his Record Book spots come from. Within each category, school records come first, then total top-10 spots. Eras go by first season.</p>' + PSCRIPT)
 write("/players/", page("/players/", "Alabama Football Players and Records | The Crimson Ledger",
-      "Every player in Alabama football's statistical Record Book, grouped as passers, runners, receivers, defenders and kickers, with school records and Heisman winners.",
-      [("Home", "/")], "The Players", f"{len(pinfo)} players appear among Alabama's top-10 statistical leaders. Search by name, or filter by group and era. ★ marks a Heisman Trophy winner.",
+      "Every player in Alabama football's statistical Record Book, by passing, rushing, receiving, defense and kicking, with school records and Heisman winners.",
+      [("Home", "/")], "The Players", f"{len(pinfo)} players appear among Alabama's top-10 statistical leaders. Search by name, or filter by category and era. ★ marks a Heisman Trophy winner.",
       [("Players", len(pinfo)), ("Heisman winners", len(HEIS))], pbody))
 urls.append(("/players/", datetime.date.today().isoformat()))
 print(f"players {len(pinfo)}")
