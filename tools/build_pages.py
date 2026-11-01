@@ -88,6 +88,11 @@ CSS += """
 .kicker{font:600 12px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:30px 0 0}
 .src{max-width:68ch;margin:36px auto 0;font-size:14px;color:var(--muted)}.src ol{padding-left:20px}.src a{text-underline-offset:3px}
 .more{max-width:68ch;margin:28px auto 0}
+.pf{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 12px}.pf input,.pf select{font:15px var(--mono);padding:10px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;min-width:0}
+.pf input{flex:1 1 200px}.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+[hidden]{display:none!important}
 """
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
@@ -412,13 +417,45 @@ for name, ents in PLAYERS.items():
     write(path, page(path, title, desc, [("Home", "/"), ("Players", "/players/")], name, lede, tiles, body))
     urls.append((path, datetime.date.today().isoformat()))
     pinfo.append((name, p_slug, n, len(recs), heis, span_txt))
-pinfo.sort(key=lambda x: (x[4] is None, -x[3], -x[2], x[0]))
-cards = "".join(f'<a href="/players/{ps}/">{E(nm)}{" ★" if hz else ""}<small>{n} Record Book spot{"s" if n != 1 else ""}' +
-                (f" · {r} record{'s' if r != 1 else ''}" if r else "") + f" · {sp}</small></a>" for nm, ps, n, r, hz, sp in pinfo)
+GROUP_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Kicking"]
+GROUP_LABEL = {"Passing": "Passers", "Rushing": "Runners", "Receiving": "Receivers", "Defense": "Defenders", "Kicking": "Kickers"}
+def primary_group(name):
+    cnt = {}
+    for e in PLAYERS[name]:
+        if e["g"] in GROUP_ORDER: cnt[e["g"]] = cnt.get(e["g"], 0) + 1
+    if not cnt: return "Passing"
+    if cnt.get("Passing", 0) >= 2: return "Passing"  # quarterbacks who also ran a lot stay with the passers
+    return max(cnt, key=lambda g: (cnt[g], -GROUP_ORDER.index(g)))
+def first_year(sp): return int(sp[:4]) if sp[:4].isdigit() else 0
+def pcard(nm, ps, n, r, hz, sp):
+    dec = first_year(sp) // 10 * 10
+    return (f'<a href="/players/{ps}/" data-n="{E(nm.lower())}" data-d="{dec}">{E(nm)}{" ★" if hz else ""}<small>{sp} · {n} spot{"s" if n != 1 else ""}' +
+            (f" · {r} record{'s' if r != 1 else ''}" if r else "") + "</small></a>")
+pkey = lambda x: (-x[3], -x[2], x[0])
+heis_p = sorted([x for x in pinfo if x[4]], key=lambda x: x[4])
+pgroups = {g: sorted([x for x in pinfo if not x[4] and primary_group(x[0]) == g], key=pkey) for g in GROUP_ORDER}
+pdecs = sorted({first_year(x[5]) // 10 * 10 for x in pinfo if first_year(x[5])})
+pchips = '<button type="button" data-g="" aria-pressed="true">All</button>' + "".join(
+    f'<button type="button" data-g="{g}" aria-pressed="false">{GROUP_LABEL[g]}</button>' for g in GROUP_ORDER if pgroups[g])
+PSCRIPT = """<script>(()=>{const q=document.getElementById("pq"),d=document.getElementById("pd"),gb=document.getElementById("pg");let g="";
+function run(){const t=q.value.trim().toLowerCase();let any=0;document.querySelectorAll("section[data-sec]").forEach(s=>{
+const showSec=!g||s.dataset.sec===g;let n=0;s.querySelectorAll(".grid a").forEach(a=>{const ok=showSec&&(!t||a.dataset.n.includes(t))&&(!d.value||a.dataset.d===d.value);a.hidden=!ok;if(ok)n++});
+s.hidden=!n;any+=n});document.getElementById("pnone").hidden=!!any}
+q.addEventListener("input",run);d.addEventListener("input",run);
+gb.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;g=b.dataset.g;gb.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));run()});})();</script>"""
+pbody = ('<div class="pf"><input id="pq" type="search" placeholder="Find a player…" aria-label="Find a player">'
+         '<select id="pd" aria-label="Filter by era"><option value="">All eras</option>' +
+         "".join(f'<option value="{d}">{d}s</option>' for d in reversed(pdecs)) + '</select></div>'
+         f'<div class="chips" id="pg" role="group" aria-label="Filter by group">{pchips}</div>'
+         f'<section data-sec="heis"><h2>Heisman winners</h2><div class="grid">{"".join(pcard(*x) for x in heis_p)}</div></section>' +
+         "".join(f'<section data-sec="{g}"><h2>{GROUP_LABEL[g]}</h2><div class="grid">{"".join(pcard(*x) for x in pgroups[g])}</div></section>'
+                 for g in GROUP_ORDER if pgroups[g]) +
+         '<p class="note" id="pnone" hidden>No players match.</p>'
+         '<p class="note">Players are grouped by where most of their Record Book spots come from. Within each group, school records come first, then total top-10 spots. Eras go by first season.</p>' + PSCRIPT)
 write("/players/", page("/players/", "Alabama Football Players and Records | The Crimson Ledger",
-      "Every player in Alabama football's statistical Record Book: school records, top-10 marks, Heisman winners and the seasons they played.",
-      [("Home", "/")], "The Players", f"{len(pinfo)} players appear among Alabama's top-10 statistical leaders. ★ marks a Heisman Trophy winner.",
-      [("Players", len(pinfo)), ("Heisman winners", len(HEIS))], f'<h2>Heisman winners first, then by school records</h2><div class="grid">{cards}</div>'))
+      "Every player in Alabama football's statistical Record Book, grouped as passers, runners, receivers, defenders and kickers, with school records and Heisman winners.",
+      [("Home", "/")], "The Players", f"{len(pinfo)} players appear among Alabama's top-10 statistical leaders. Search by name, or filter by group and era. ★ marks a Heisman Trophy winner.",
+      [("Players", len(pinfo)), ("Heisman winners", len(HEIS))], pbody))
 urls.append(("/players/", datetime.date.today().isoformat()))
 print(f"players {len(pinfo)}")
 
