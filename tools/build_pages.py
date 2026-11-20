@@ -109,6 +109,18 @@ CSS += NAV_CSS + """
 .sw{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}.sw.t{background:var(--gold)}.sw.r{background:var(--crim)}
 .ax{fill:var(--muted);font:11px var(--mono)}.gl{stroke:var(--line);stroke-width:1}.bar{fill:var(--crim);opacity:.75}.bar.t{fill:var(--gold);opacity:1}.chart a:hover .bar{opacity:1;stroke:var(--fg);stroke-width:1}
 @media (max-width:560px){.ax{font-size:28px}.ay{display:none}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile:last-child:nth-child(odd){grid-column:1/-1}}
+.ibnext{display:grid;gap:4px;margin-top:28px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--gold);padding:16px 18px}
+.ibnext>span{font:600 11px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.ibnext b{font:800 30px/1.1 var(--display);text-transform:uppercase}.ibnext small{font:13px/1.4 var(--mono);color:var(--muted)}
+.story.ib{max-width:68ch;margin:0}.story.ib p:first-of-type::first-letter{float:none;font:inherit;color:inherit;margin:0}
+.lms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.lm{background:var(--surface);border:1px solid var(--line);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.lmh{display:flex;align-items:baseline;gap:12px}.lmh span{font:600 13px/1 var(--mono);color:var(--crim)}.lmh b{font:800 24px/1.05 var(--display);text-transform:uppercase}
+.lms{font:600 12px/1.4 var(--mono)}.lm p{margin:0;font-size:16px;line-height:1.55}.lm a{font:600 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--crim);padding-top:4px}
+.dec{background:var(--surface);border:1px solid var(--line);padding:16px 18px}.dec .legend{margin-bottom:12px}.sw.w{background:#1F7A44}.sw.l{background:var(--line)}
+.dr{display:grid;grid-template-columns:56px 1fr 72px;gap:12px;align-items:center;padding:5px 0;font:13px var(--mono)}
+.db{display:flex;height:14px;background:var(--bg)}.db i{display:block}.db .w{background:#1F7A44}.db .l{background:var(--line)}.db .t{background:var(--gold)}
+.dn{text-align:right;font-variant-numeric:tabular-nums}
+@media (prefers-color-scheme:dark){.db .w,.sw.w{background:#5CC98A}}
 .h2n{font:600 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);margin-left:10px;vertical-align:middle}
 .upd{font:12px/1.4 var(--mono);color:var(--muted);margin:10px 0 0}
 .sub{display:block;font:12px/1.4 var(--mono);color:var(--muted);margin-top:2px}.ctbl td{vertical-align:top}
@@ -253,6 +265,8 @@ for opp, gs in OPP.items():
             "".join(f'<div class="fact"><span>{E(k)}</span>{E(v)}</div>' for k, v in facts) + "</div>")
     if len(pc) > 1:
         body += f'<h2>By Alabama coach</h2><div class="tbl"><table><thead><tr><th>Coach</th><th class="num">Games</th><th class="num">Record</th></tr></thead><tbody>{coach_rows}</tbody></table></div>'
+    if opp == "Auburn":
+        body = '<a class="cta" href="/iron-bowl/">The Iron Bowl: history and greatest games</a>' + body
     body += story_cards(STORY_BY_OPP.get(opp, []))
     body += f"<h2>Every game</h2>" + game_table(list(reversed(gs)), False, show_season=True, show_coach=True)
     body += '<a class="cta" href="/vs/">All Alabama opponents</a>'
@@ -261,6 +275,127 @@ for opp, gs in OPP.items():
     desc = re.sub("<[^>]+>", "", html.unescape(lede)) + f" Every result since {first['d'][:4]}."
     write(path, page(path, title, desc, [("Home", "/"), ("Opponents", "/vs/")], f"Alabama vs. {opp}", lede, tiles, body))
     urls.append((path, last["d"]))
+
+# ---------- the Iron Bowl ----------
+# Hand-written text here was checked against the sources listed at the bottom of the page (Nov. 2026).
+# House rule: the page celebrates Alabama's side of the rivalry; it does not feature Auburn's famous moments.
+IB = OPP["Auburn"]
+ibw, ibl, ibt = wl(IB)
+modern = [g for g in IB if g["s"] >= 1948]
+ib_last = IB[-1]
+cur = 1
+while cur < len(IB) and IB[-1 - cur]["res"] == ib_last["res"]: cur += 1
+best, best_end, run = 0, None, 0
+for g in IB:
+    run = run + 1 if g["res"] == "W" else 0
+    if run > best: best, best_end = run, g
+best_start = IB[IB.index(best_end) - best + 1]
+bigw = max((g for g in IB if g["res"] == "W"), key=lambda g: (g["a"] - g["o"], -int(g["d"][:4])))
+shut = sum(1 for g in IB if g["res"] == "W" and g["o"] == 0)
+close = [g for g in IB if abs(g["a"] - g["o"]) <= 8]
+ib_next = next(((d, loc) for d, o, loc in SCHED if o == "Auburn" and d > ib_last["d"]), None)
+def ib_where(g):
+    if g["loc"] == "H": return "Tuscaloosa"
+    if g["loc"] == "A": return "Auburn"
+    return g["city"].split(",")[0] if g["city"] else "Neutral site"
+venues = {}
+for g in IB: venues.setdefault(ib_where(g), []).append(g)
+ib_tiles = [("All-time series", rec(ibw, ibl, ibt)), ("Meetings", len(IB)),
+            ("Current streak", f"Alabama {cur}" if ib_last["res"] == "W" else f"Last: {ib_last['d'][:4]}")]
+if ib_next:
+    ib_tiles.append(("Next meeting", fdate(ib_next[0]).rsplit(",", 1)[0]))
+ib_lede = (f"Alabama vs. Auburn, every year since 1948 and {len(IB)} times since 1893. "
+           f"Alabama leads the series {rec(ibw, ibl, ibt)}, including {rec(*wl(modern))} since the rivalry resumed in 1948.")
+
+body = ""
+if ib_next:
+    nd, nloc = ib_next
+    where = "Bryant-Denny Stadium, Tuscaloosa" if nloc == "H" else "Jordan-Hare Stadium, Auburn"
+    body += (f'<div class="ibnext" data-d="{nd}"><span>Next Iron Bowl</span><b>{fdate(nd)}</b><small>{where}'
+             f'<span id="ibdays"></span></small></div>'
+             '<script>(()=>{const e=document.querySelector(".ibnext"),d=new Date(e.dataset.d+"T12:00:00"),t=new Date();t.setHours(12,0,0,0);'
+             'const n=Math.round((d-t)/864e5);if(n<0){e.hidden=true;return}'
+             'document.getElementById("ibdays").textContent=n===0?" · Today":n===1?" · Tomorrow":` · ${n} days away`})();</script>')
+
+body += """<h2>How it started</h2><div class="story ib">
+<p>Alabama and Auburn first played on Feb. 22, 1893, in Birmingham. Auburn won that one 32–22, and Alabama's records count it as the last game of its 1892 season.</p>
+<p>The two schools met most years until 1907, when they played to a 6–6 tie in the mud, still the only tie in the series. That game is where Alabama's "Thin Red Line" picked up a new name: the Crimson Tide. Then the schools stopped playing each other for 41 years.</p>
+<p>The state legislature finally pushed them back together. On Dec. 4, 1948, at Legion Field in Birmingham, Alabama won 55–0. It's still the most lopsided game in the series. That was also the first year of the Iron Bowl's trophy, the Omicron Delta Kappa Cup.</p>
+<p>Birmingham hosted the game every year from 1948 through 1988, and the city gave the rivalry its name. Auburn coach Shug Jordan is credited with it: asked in 1964 about missing out on a bowl trip, he said his team already had a bowl game every year, the Iron Bowl in Birmingham. The steel city's nickname stuck. Auburn began hosting at Jordan-Hare Stadium in 1989, and in 2000 the game came to Tuscaloosa for the first time since 1901.</p>
+</div>"""
+
+facts = [("Biggest win", f"{score(bigw)} in {bigw['d'][:4]}"),
+         ("Longest win streak", f"{best} straight, {best_start['d'][:4]}–{best_end['d'][:4]}"),
+         ("Alabama shutouts", f"{shut} games"),
+         ("Decided by 8 or fewer", f"{len(close)} games · Alabama {rec(*wl(close))}"),
+         ("Points scored", f"Alabama {sum(g['a'] for g in IB):,}, Auburn {sum(g['o'] for g in IB):,}"),
+         ("Since 1948", f"Alabama {rec(*wl(modern))}")]
+body += '<h2>By the numbers</h2><div class="facts">' + "".join(f'<div class="fact"><span>{E(k)}</span>{E(v)}</div>' for k, v in facts) + "</div>"
+
+LANDMARKS = [
+ ("1948-12-04", "The series returns", "After 41 years apart, the rivals met again at Legion Field, and Alabama won by the biggest margin the series has ever seen."),
+ ("1964-11-26", "The first one on TV", "Joe Namath led Alabama to a 21–14 win in the first televised Iron Bowl, on the way to a national championship."),
+ ("1967-12-02", "The Run in the Mud", "In the first Iron Bowl played at night, on a rain-soaked field, Ken Stabler kept the ball on an option and ran 47 yards in the fourth quarter for the game's only touchdown."),
+ ("1981-11-28", "Bryant's 315th", "Bear Bryant passed Amos Alonzo Stagg as the winningest coach in major college football, against his former assistant Pat Dye."),
+ ("1985-11-30", "The Kick", "The lead changed hands four times in the fourth quarter. Van Tiffin's fourth field goal of the day, from 52 yards as time expired, beat No. 7 Auburn."),
+ ("2021-11-27", "Four overtimes", "Down 10–3 with 1:35 left, Bryce Young drove Alabama 97 yards and hit Ja'Corey Brooks for a 28-yard touchdown with 24 seconds left. It was the first Iron Bowl to go to overtime, and Young found John Metchie III for the winning two-point conversion in the fourth extra period."),
+ ("2023-11-25", "4th and 31", "Facing fourth-and-goal from the Auburn 31 with 43 seconds left and trailing 24–20, Jalen Milroe found Isaiah Bond in the corner of the end zone. Alabama won 27–24."),
+]
+GBD_IB = {g["d"]: g for g in IB}
+STORY_SLUG = {st["date"]: st["slug"] for st in STORIES if st.get("date")}
+cards = ""
+for d, h, ptxt in LANDMARKS:
+    g = GBD_IB[d]
+    assert g["res"] == "W", d
+    more = f'<a href="/stories/{STORY_SLUG[d]}/">Read the story →</a>' if d in STORY_SLUG else f'<a href="/seasons/{g["s"]}/">The {g["s"]} season →</a>'
+    cards += (f'<div class="lm"><div class="lmh"><span>{g["d"][:4]}</span><b>{E(h)}</b></div>'
+              f'<div class="lms W">W {score(g)} · {fdate(d)} · {E(ib_where(g))}</div><p>{E(ptxt)}</p>{more}</div>')
+body += '<h2>Iron Bowls to remember</h2><div class="lms-grid">' + cards + "</div>"
+
+# by decade: one bar per decade, split into wins / losses / ties
+dec = {}
+for g in IB: dec.setdefault(int(g["d"][:4]) // 10 * 10, []).append(g)
+rows = ""
+for dcd, gs_ in sorted(dec.items()):
+    w_, l_, t_ = wl(gs_); n_ = len(gs_)
+    rows += (f'<div class="dr"><span class="dy">{dcd}s</span><span class="db" role="img" aria-label="{w_} wins, {l_} losses{", " + str(t_) + " tie" if t_ else ""}">'
+             f'<i class="w" style="flex:{w_}"></i><i class="t" style="flex:{t_}"></i><i class="l" style="flex:{l_}"></i></span><span class="dn">{rec(w_, l_, t_)}</span></div>')
+body += ('<h2>Decade by decade</h2><div class="dec"><div class="legend"><span><i class="sw w"></i>Alabama wins</span><span><i class="sw l"></i>Auburn wins</span><span><i class="sw t"></i>Tie</span></div>'
+         + rows + '<p class="note">No games were played from 1908 through 1947. The 1893 game in February is counted in its calendar year here.</p></div>')
+
+# by coach
+pc = {}
+for g in IB: pc.setdefault(g["coach"], []).append(g)
+crow = "".join(f'<tr><td>{E(c)}</td><td class="num">{len(v)}</td><td class="num">{rec(*wl(v))}</td></tr>'
+               for c, v in sorted(pc.items(), key=lambda kv: -len(kv[1])) if len(v) >= 3)
+body += ('<h2>Alabama coaches in the Iron Bowl</h2><div class="tbl"><table><thead><tr><th>Coach</th><th class="num">Iron Bowls</th><th class="num">Record</th></tr></thead>'
+         f'<tbody>{crow}</tbody></table></div><p class="note">Coaches with at least three Iron Bowls.</p>')
+
+# where it's been played
+vrow = "".join(f'<tr><td>{E(v)}</td><td class="num">{len(gs_)}</td><td class="num">{rec(*wl(gs_))}</td><td class="num">{min(g["d"][:4] for g in gs_)}–{max(g["d"][:4] for g in gs_)}</td></tr>'
+               for v, gs_ in sorted(venues.items(), key=lambda kv: -len(kv[1])))
+body += ('<h2>Where it\'s been played</h2><div class="tbl"><table><thead><tr><th>City</th><th class="num">Games</th><th class="num">Alabama</th><th class="num">Years</th></tr></thead>'
+         f'<tbody>{vrow}</tbody></table></div>')
+
+body += story_cards(STORY_BY_OPP.get("Auburn", []))
+body += '<a class="cta" href="/vs/auburn/">Every Iron Bowl result</a>'
+IB_SOURCES = [
+ ("Iron Bowl (Encyclopedia of Alabama)", "https://encyclopediaofalabama.org/article/iron-bowl/"),
+ ("Iron Bowl history (University of Alabama news archive)", "https://archive.news.ua.edu/?p=100226"),
+ ("Iron Bowl (Bhamwiki)", "https://www.bhamwiki.com/w/Iron_Bowl"),
+ ("Alabama, Auburn played the 1st Iron Bowl on Feb. 22, 1893 (NCAA.com)", "https://www.ncaa.com/news/football/article/2022-02-22/alabama-auburn-football-teams-played-1st-iron-bowl-feb-22-1893"),
+ ("Ken Stabler's Run in the Mud (Encyclopedia of Alabama)", "https://encyclopediaofalabama.org/?p=5407"),
+ ("1985 Alabama Crimson Tide football team (Wikipedia)", "https://en.wikipedia.org/wiki/1985_Alabama_Crimson_Tide_football_team"),
+ ("No. 3 Alabama rallies late, survives four overtimes to beat Auburn (AP via NBC Sports)", "https://www.nbcsports.com/college-football/news/no-3-alabama-rallies-late-survives-four-overtimes-to-beat-auburn"),
+ ("Milroe's TD pass to Bond on fourth-and-31 rescues No. 8 Alabama (AP via Fox Sports)", "https://www.foxsports.com/stories/college-football/jalen-milroes-td-pass-on-fourth-and-31-rescues-no-8-alabama-vs-auburn"),
+]
+body += ('<div class="src"><b>Sources</b><ol>' + "".join(f'<li><a href="{E(u)}" rel="nofollow">{E(n)}</a></li>' for n, u in IB_SOURCES)
+         + f'</ol><p class="upd">Results and records come from the Game Book. History fact-checked {fdate("2026-11-20")}.</p></div>')
+write("/iron-bowl/", page("/iron-bowl/", "The Iron Bowl: Alabama vs. Auburn History, Records and Greatest Games | The Crimson Ledger",
+      f"The Iron Bowl from Alabama's side: how the rivalry started, the {rec(ibw, ibl, ibt)} series, the longest streaks, the Run in the Mud, The Kick, four overtimes and 4th and 31.",
+      [("Home", "/"), ("Opponents", "/vs/")], "The Iron Bowl", ib_lede, ib_tiles, body))
+urls.append(("/iron-bowl/", ib_last["d"]))
+print(f"iron bowl {rec(ibw, ibl, ibt)} in {len(IB)} games")
 
 # ---------- season pages ----------
 years = sorted(y for y in SEASONS if any(g["s"] == y for g in G))

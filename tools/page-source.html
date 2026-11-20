@@ -217,6 +217,7 @@ body[data-view="games"] .head::after,body[data-view="records"] .head::after{disp
 .vhead .crumbs{font:600 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.vhead .crumbs a{color:var(--gold);text-decoration:none}
 .vhead h1{font-size:clamp(44px,8vw,80px);font-weight:900;text-transform:uppercase;margin:10px 0 12px}
 .vhead .lede{max-width:60ch;margin:0;color:#CDD1D2;font-size:18px}
+.gwser{display:inline-block;margin-top:16px;font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--crim);text-decoration:none;padding:6px 0}
 /* SITENAV-CSS:START (build_pages.py copies this block into every other page) */
 /* site nav (same on every page) */
 .sn{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--board) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--boardfg);border-bottom:1px solid #2A2E31}
@@ -255,6 +256,7 @@ body[data-view="games"] .head::after,body[data-view="records"] .head::after{disp
 .more .btn{text-decoration:none;display:inline-block}
 /* dig deeper */
 .explore{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.explore a.feat{grid-column:1/-1;background:var(--board);color:var(--boardfg);border-left:4px solid var(--gold)}.explore a.feat b{color:#fff;font-size:30px}.explore a.feat small{color:#C9CDCD}.explore a.feat::after{color:var(--gold)}
 .explore a{background:var(--surface);padding:18px 18px 16px;text-decoration:none;color:inherit;display:grid;gap:6px;align-content:start;position:relative}
 .explore a::after{content:"→";position:absolute;right:16px;top:16px;font:600 16px/1 var(--mono);color:var(--crim);transition:transform .2s}
 .explore a:hover::after{transform:translateX(4px)}.explore a:hover b{color:var(--crim)}
@@ -345,6 +347,7 @@ details.about p{border-left:3px solid var(--crim);padding:4px 0 4px 12px;margin:
   <section aria-labelledby="ex-h" data-only="home">
     <div class="head"><h2 id="ex-h">Dig Deeper</h2><span class="label">The whole ledger</span></div>
     <div class="explore" id="explore">
+      <a class="feat" href="/iron-bowl/"><b>The Iron Bowl</b><small id="exib">Alabama vs. Auburn since 1893</small></a>
       <a href="/games/"><b>The Game Book</b><small id="exg">Every game since 1892</small></a>
       <a href="/vs/"><b>Opponents</b><small id="exo">Head-to-head vs. everyone</small></a>
       <a href="/seasons/"><b>Seasons</b><small id="exs">Every year and schedule</small></a>
@@ -592,6 +595,8 @@ $("exg").textContent=`${ALL.length.toLocaleString()} games since 1892`;
 $("exo").textContent=`Head to head vs. all ${new Set(ALL.map(g=>g.opp)).size}`;
 $("exs").textContent=`${S.length} seasons, ${S[0].year}–${S[S.length-1].year}`;
 $("exc").textContent=`All ${new Set(S.map(s=>s.coach)).size} head coaches`;
+{const ib=ALL.filter(g=>g.opp==="Auburn"),w=ib.filter(g=>g.res==="W").length,l=ib.filter(g=>g.res==="L").length,t=ib.length-w-l;
+ $("exib").textContent=`Alabama leads ${w}–${l}${t?"–"+t:""} · history, streaks and greatest games`;}
 $("exst").textContent=`${STORIES.length} stories behind the games`;
 
 /* on this day: every game played on today's date; if none, the next date with games */
@@ -678,7 +683,8 @@ const SCHED=[["2026-09-05","East Carolina","H"],["2026-09-12","Kentucky","A"],["
   <span>Current streak</span><span>${r==="W"?"Won":r==="L"?"Lost":"Tied"} ${k}</span>
   <span>${loc==="A"?`Record at ${opp}`:loc==="N"?"Record at neutral sites":"Record in Tuscaloosa"}</span><span>${sw}–${sl}${site.length-sw-sl?"–"+(site.length-sw-sl):""}</span>
   <span>Biggest win</span><span>${big?`${big.a}–${big.o}, ${big.y}`:"—"}</span>
-  <span>Decided by 3 or less</span><span>${close} games</span></div></div>
+  <span>Decided by 3 or less</span><span>${close} games</span></div>
+  <a class="gwser" href="${opp==="Auburn"?"/iron-bowl/":"/vs/"+opp.toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"/"}">${opp==="Auburn"?"Iron Bowl history":"Full series history"} →</a></div>
   <div><div class="label">The last ${last.length}</div><ul class="l10">${last.map(g=>`<li><span class="${rc(g)}">${g.y}</span><span>${g.res} ${g.a}–${g.o}${g.n?` · <span class="lmk">${g.n}</span>`:""}</span><span class="loc">${g.loc==="H"?"Home":g.loc==="A"?"Away":"Neutral"}</span></li>`).join("")}</ul></div>`;
 })();
 
