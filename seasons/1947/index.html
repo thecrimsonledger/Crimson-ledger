@@ -22,11 +22,6 @@
 @media (prefers-color-scheme:dark){:root{--bg:#111314;--surface:#1B1E1F;--fg:#E8EAEA;--muted:#9BA2A4;--line:#30353A;--crim:#EC6A80;--board:#08090A;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.55 var(--body)}
 .wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.top{background:var(--board);color:var(--boardfg);border-bottom:4px solid #9E1B32}
-.top .wrap{display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap}
-.brand{font:900 22px/1 var(--display);text-transform:uppercase;color:var(--boardfg);text-decoration:none;margin-right:auto}.brand span{color:var(--gold)}
-.top nav a{font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#C9CDCD;text-decoration:none;padding:8px 0}
-.top nav{display:flex;flex-wrap:wrap;gap:4px 18px;max-width:100%}.top nav a:hover{color:var(--gold)}
 .hero{background:var(--board);color:var(--boardfg);padding:36px 0 34px}
 .crumbs{font:600 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}.crumbs a{color:var(--gold);text-decoration:none}
 h1{font:800 clamp(38px,7vw,72px)/.95 var(--display);text-transform:uppercase;margin:12px 0 14px}
@@ -55,7 +50,7 @@ a{color:inherit}td a{text-decoration-color:var(--line);text-underline-offset:3px
 .grid a:hover{border-color:var(--crim)}.grid small{display:block;color:var(--muted);font:12px/1.4 var(--mono)}
 .cta{display:inline-block;margin-top:22px;font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:13px 18px;background:#9E1B32;color:#fff}
 footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px solid var(--line)}
-@media (max-width:560px){.top nav{gap:2px 14px}h1{margin-top:8px}}
+@media (max-width:560px){h1{margin-top:8px}}
 
 .story{max-width:68ch;margin:0 auto}.story p{margin:0 0 1.1em;font-size:19px;line-height:1.65}
 .story h2{font-size:clamp(24px,4vw,32px);margin:38px 0 14px}
@@ -68,12 +63,50 @@ footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px soli
 .chips button{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;cursor:pointer}
 .chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 [hidden]{display:none!important}
+/* site nav (same on every page) */
+.sn{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--board) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--boardfg);border-bottom:1px solid #2A2E31}
+.sn .wrap{display:flex;align-items:center;gap:4px;min-height:54px}
+.sn .brand{font:900 21px/1 var(--display);text-transform:uppercase;color:var(--boardfg);text-decoration:none;white-space:nowrap;margin-right:auto;padding:14px 0}
+.sn .brand span{color:var(--gold)}
+.snl{display:flex}
+.snl a,.snm summary{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#B9BFC1;text-decoration:none;padding:19px 11px 17px;border-bottom:2px solid transparent;cursor:pointer;list-style:none;white-space:nowrap}
+.snm summary::-webkit-details-marker{display:none}
+.snm summary::after{content:"";display:inline-block;width:6px;height:6px;margin-left:8px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(-3px) rotate(45deg)}
+.snm[open] summary::after{transform:translateY(0) rotate(-135deg)}
+.snl a:hover,.snl a[aria-current],.snm summary:hover,.snm[open] summary{color:#fff;border-bottom-color:var(--gold)}
+.snm{position:relative}
+.snm .m{display:none}
+.snp{position:absolute;right:0;top:100%;min-width:220px;background:var(--board);border:1px solid #2A2E31;border-top:2px solid var(--gold);padding:6px 0;box-shadow:0 22px 40px -14px rgba(0,0,0,.65)}
+.snp a{display:block;font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#D3D7D8;text-decoration:none;padding:14px 20px}
+.snp a:hover,.snp a[aria-current]{color:var(--gold);background:rgba(255,255,255,.05)}
+@media (max-width:700px){.snl{display:none}.snm .d{display:none}.snm summary .m{display:inline}.snp a.m{display:block}
+ .snp a.m+a:not(.m){border-top:1px solid #2A2E31;margin-top:6px;padding-top:20px}.snm summary{padding-right:2px}.sn .brand{font-size:19px}}
+/* footer */
+.sf{border-top:1px solid var(--line);margin-top:40px;padding-block:28px 40px}
+.sfl{display:flex;flex-wrap:wrap;gap:10px 22px;margin-bottom:16px}
+.sfl a{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--fg);text-decoration:none;padding:6px 0}.sfl a:hover{color:var(--crim)}
+.sf p{margin:0;max-width:72ch;font-size:14px}
+
+.chart{background:var(--surface);border:1px solid var(--line);padding:16px;margin-top:28px}.chartbox{overflow-x:auto}.chartbox svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font:13px var(--mono);margin-bottom:10px}.legend .lg{color:var(--muted);font-size:12px}
+.sw{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}.sw.t{background:var(--gold)}.sw.r{background:var(--crim)}
+.ax{fill:var(--muted);font:11px var(--mono)}.gl{stroke:var(--line);stroke-width:1}.bar{fill:var(--crim);opacity:.75}.bar.t{fill:var(--gold);opacity:1}.chart a:hover .bar{opacity:1;stroke:var(--fg);stroke-width:1}
+@media (max-width:560px){.ax{font-size:28px}.ay{display:none}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile:last-child:nth-child(odd){grid-column:1/-1}}
+.h2n{font:600 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);margin-left:10px;vertical-align:middle}
+.sub{display:block;font:12px/1.4 var(--mono);color:var(--muted);margin-top:2px}.ctbl td{vertical-align:top}
+footer.sf{border-top:1px solid var(--line);margin-top:40px}
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://thecrimsonledger.com/"}, {"@type": "ListItem", "position": 2, "name": "Seasons", "item": "https://thecrimsonledger.com/seasons/"}, {"@type": "ListItem", "position": 3, "name": "1947 Alabama Football", "item": "https://thecrimsonledger.com/seasons/1947/"}]}</script>
 </head>
 <body>
-<header class="top"><div class="wrap"><a class="brand" href="/">Crimson <span>Ledger</span></a>
-<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a><a href="/players/">Players</a><a href="/trivia/">Trivia</a></nav></div></header>
+<header class="sn"><div class="wrap">
+<a class="brand" href="/">Crimson <span>Ledger</span></a>
+<nav class="snl" aria-label="Site"><a href="/games/">Games</a><a href="/stories/">Stories</a><a href="/players/">Players</a><a href="/trivia/">Trivia</a></nav>
+<details class="snm"><summary><span class="d">More</span><span class="m">Menu</span></summary><div class="snp">
+<a class="m" href="/">Home</a><a class="m" href="/games/">Games</a><a class="m" href="/stories/">Stories</a><a class="m" href="/players/">Players</a><a class="m" href="/trivia/">Trivia</a><a href="/vs/">Opponents</a><a href="/seasons/" aria-current="page">Seasons</a><a href="/records/">Record Book</a><a href="/coaches/">Coaches</a>
+</div></details>
+</div></header>
+<script>document.addEventListener("click",e=>{document.querySelectorAll(".snm[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})})</script>
 <section class="hero"><div class="wrap">
 <div class="crumbs"><a href="/">Home</a> · <a href="/seasons/">Seasons</a></div>
 <h1>1947 Alabama Football</h1>
@@ -83,9 +116,9 @@ footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px soli
 <main class="wrap">
 <h2>Postseason</h2><div class="facts"><div class="fact"><span>Sugar Bowl</span>Lost 7–27 vs. <a href="/vs/texas/">Texas</a> · Jan. 1, 1948</div></div><h2>Schedule and results</h2><div class="tbl"><table><thead><tr><th>Date</th><th>Opponent</th><th>Site</th><th>Result</th><th class="num">Score</th><th>Notes</th></tr></thead><tbody><tr><td>Sept. 20, 1947</td><td><a href="/vs/southern-miss/">Southern Miss</a></td><td>Birmingham, AL</td><td class="W">W</td><td class="num">34–7</td><td class="wrap-ok"></td></tr><tr><td>Sept. 27, 1947</td><td><a href="/vs/tulane/">Tulane</a></td><td>Away</td><td class="L">L</td><td class="num">20–21</td><td class="wrap-ok">Conference game</td></tr><tr><td>Oct. 4, 1947</td><td><a href="/vs/vanderbilt/">Vanderbilt</a></td><td>Away</td><td class="L">L</td><td class="num">7–14</td><td class="wrap-ok">Conference game</td></tr><tr><td>Oct. 11, 1947</td><td><a href="/vs/duquesne/">Duquesne</a></td><td>Home</td><td class="W">W</td><td class="num">26–0</td><td class="wrap-ok"></td></tr><tr><td>Oct. 18, 1947</td><td><a href="/vs/tennessee/">Tennessee</a></td><td>Birmingham, AL</td><td class="W">W</td><td class="num">10–0</td><td class="wrap-ok">Conference game</td></tr><tr><td>Oct. 25, 1947</td><td><a href="/vs/georgia/">Georgia</a></td><td>Away</td><td class="W">W</td><td class="num">17–7</td><td class="wrap-ok">Conference game</td></tr><tr><td>Nov. 1, 1947</td><td><a href="/vs/kentucky/">Kentucky</a></td><td>Away</td><td class="W">W</td><td class="num">13–0</td><td class="wrap-ok">Conference game</td></tr><tr><td>Nov. 15, 1947</td><td><a href="/vs/georgia-tech/">Georgia Tech</a></td><td>Birmingham, AL</td><td class="W">W</td><td class="num">14–7</td><td class="wrap-ok">Conference game</td></tr><tr><td>Nov. 22, 1947</td><td><a href="/vs/lsu/">LSU</a></td><td>Home</td><td class="W">W</td><td class="num">41–12</td><td class="wrap-ok">Conference game</td></tr><tr><td>Nov. 29, 1947</td><td><a href="/vs/miami/">Miami</a></td><td>Away</td><td class="W">W</td><td class="num">21–6 †</td><td class="wrap-ok"></td></tr><tr><td>Jan. 1, 1948</td><td><a href="/vs/texas/">Texas</a></td><td>New Orleans, LA</td><td class="L">L</td><td class="num">7–27</td><td class="wrap-ok">Sugar Bowl</td></tr></tbody></table></div><p class="note">† Result disputed between sources. ‡ Result not independently verified.</p><nav class="pn" aria-label="Other seasons"><a href="/seasons/1946/">← 1946</a><a href="/seasons/">All seasons</a><a href="/seasons/1948/">1948 →</a></nav>
 </main>
-<footer class="wrap">An independent fan history project. Not affiliated with the University of Alabama or the SEC.
+<footer class="wrap sf"><nav class="sfl" aria-label="All sections"><a href="/games/">Game Book</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/records/">Record Book</a><a href="/players/">Players</a><a href="/coaches/">Coaches</a><a href="/stories/">Stories</a><a href="/trivia/">Trivia</a></nav>
+<p>An independent fan history project. Not affiliated with the University of Alabama or the SEC.
 Game results from James Howell's college football scores archive (1902 on) and Wikipedia season pages (1892–1901).
-Records are on-field results; Alabama's official record excludes wins later vacated or forfeited (1993, 2005–2007).
-<br><a href="/">The Crimson Ledger home</a> · <a href="/vs/">All opponents</a> · <a href="/seasons/">All seasons</a></footer>
+Records are on-field results; Alabama's official record excludes wins later vacated or forfeited (1993, 2005–2007).</p></footer>
 </body>
 </html>

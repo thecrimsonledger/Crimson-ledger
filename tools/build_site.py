@@ -42,7 +42,7 @@ html = f"""<!doctype html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 {links}<style>{reset}</style>
 {style}</head>
-<body>
+<body data-view="home">
 {body}</body>
 </html>
 """

@@ -2,7 +2,9 @@
 
 Usage (from the repo root): python3 -I tools/build_pages.py
 Reads data/allgames.json plus the season table (SCSV) and titles from tools/page-source.html,
-data/stories.json and data/records.json, and writes vs/, seasons/, stories/, players/, trivia/, sitemap.xml and robots.txt. Run it after every weekly update.
+data/stories.json and data/records.json, and writes vs/, seasons/, stories/, players/, trivia/, coaches/, sitemap.xml and robots.txt.
+It also makes games/ and records/ from the built index.html (same page, other sections shown), so run it
+AFTER build_site.py has refreshed index.html. Run it after every weekly update.
 """
 import json, re, os, shutil, html, datetime
 
@@ -40,17 +42,24 @@ def score(g): return f"{g['a']}–{g['o']}"
 def wl(gs):
     w = sum(g["res"] == "W" for g in gs); l = sum(g["res"] == "L" for g in gs); return w, l, len(gs) - w - l
 
+# ---------- site nav: one copy, kept in tools/page-source.html between the SITENAV markers ----------
+NAV_HTML = re.search(r"<!--SITENAV:START-->\n(.*?)<!--SITENAV:END-->", src, re.S).group(1)
+NAV_CSS = re.search(r"/\* SITENAV-CSS:START.*?\*/\n(.*?)/\* SITENAV-CSS:END \*/", src, re.S).group(1)
+NAV_JS = '<script>document.addEventListener("click",e=>{document.querySelectorAll(".snm[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})})</script>'
+SECTIONS = ["/games/", "/stories/", "/players/", "/trivia/", "/vs/", "/seasons/", "/records/", "/coaches/"]
+def nav_for(path):
+    cur = next((x for x in SECTIONS if path.startswith(x)), None)
+    h = NAV_HTML
+    if cur: h = h.replace(f'href="{cur}"', f'href="{cur}" aria-current="page"')
+    return h + NAV_JS
+FOOT_NAV = re.search(r'(<nav class="sfl".*?</nav>)', src, re.S).group(1)
+
 # ---------- page shell ----------
 CSS = """:root{--bg:#EEF0EE;--surface:#fff;--fg:#1A1C1D;--muted:#5F6567;--line:#D0D5D6;--crim:#9E1B32;--board:#17191A;--boardfg:#F2F2F0;--gold:#E9B44C;
 --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;--body:"Source Serif 4",Georgia,serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#111314;--surface:#1B1E1F;--fg:#E8EAEA;--muted:#9BA2A4;--line:#30353A;--crim:#EC6A80;--board:#08090A;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.55 var(--body)}
 .wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.top{background:var(--board);color:var(--boardfg);border-bottom:4px solid #9E1B32}
-.top .wrap{display:flex;align-items:center;gap:18px;min-height:56px;flex-wrap:wrap}
-.brand{font:900 22px/1 var(--display);text-transform:uppercase;color:var(--boardfg);text-decoration:none;margin-right:auto}.brand span{color:var(--gold)}
-.top nav a{font:600 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#C9CDCD;text-decoration:none;padding:8px 0}
-.top nav{display:flex;flex-wrap:wrap;gap:4px 18px;max-width:100%}.top nav a:hover{color:var(--gold)}
 .hero{background:var(--board);color:var(--boardfg);padding:36px 0 34px}
 .crumbs{font:600 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}.crumbs a{color:var(--gold);text-decoration:none}
 h1{font:800 clamp(38px,7vw,72px)/.95 var(--display);text-transform:uppercase;margin:12px 0 14px}
@@ -79,7 +88,7 @@ a{color:inherit}td a{text-decoration-color:var(--line);text-underline-offset:3px
 .grid a:hover{border-color:var(--crim)}.grid small{display:block;color:var(--muted);font:12px/1.4 var(--mono)}
 .cta{display:inline-block;margin-top:22px;font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:13px 18px;background:#9E1B32;color:#fff}
 footer{color:var(--muted);font-size:14px;padding:36px 0 44px;border-top:1px solid var(--line)}
-@media (max-width:560px){.top nav{gap:2px 14px}h1{margin-top:8px}}
+@media (max-width:560px){h1{margin-top:8px}}
 """
 CSS += """
 .story{max-width:68ch;margin:0 auto}.story p{margin:0 0 1.1em;font-size:19px;line-height:1.65}
@@ -93,6 +102,16 @@ CSS += """
 .chips button{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:2px;cursor:pointer}
 .chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 [hidden]{display:none!important}
+"""
+CSS += NAV_CSS + """
+.chart{background:var(--surface);border:1px solid var(--line);padding:16px;margin-top:28px}.chartbox{overflow-x:auto}.chartbox svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font:13px var(--mono);margin-bottom:10px}.legend .lg{color:var(--muted);font-size:12px}
+.sw{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}.sw.t{background:var(--gold)}.sw.r{background:var(--crim)}
+.ax{fill:var(--muted);font:11px var(--mono)}.gl{stroke:var(--line);stroke-width:1}.bar{fill:var(--crim);opacity:.75}.bar.t{fill:var(--gold);opacity:1}.chart a:hover .bar{opacity:1;stroke:var(--fg);stroke-width:1}
+@media (max-width:560px){.ax{font-size:28px}.ay{display:none}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile:last-child:nth-child(odd){grid-column:1/-1}}
+.h2n{font:600 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);margin-left:10px;vertical-align:middle}
+.sub{display:block;font:12px/1.4 var(--mono);color:var(--muted);margin-top:2px}.ctbl td{vertical-align:top}
+footer.sf{border-top:1px solid var(--line);margin-top:40px}
 """
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
@@ -127,8 +146,7 @@ def page(path, title, desc, crumbs, h1, lede, tiles, body):
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
 </head>
 <body>
-<header class="top"><div class="wrap"><a class="brand" href="/">Crimson <span>Ledger</span></a>
-<nav aria-label="Site"><a href="/">Home</a><a href="/vs/">Opponents</a><a href="/seasons/">Seasons</a><a href="/stories/">Stories</a><a href="/players/">Players</a><a href="/trivia/">Trivia</a></nav></div></header>
+{nav_for(path)}
 <section class="hero"><div class="wrap">
 <div class="crumbs">{crumb_html}</div>
 <h1>{E(h1)}</h1>
@@ -138,10 +156,10 @@ def page(path, title, desc, crumbs, h1, lede, tiles, body):
 <main class="wrap">
 {body}
 </main>
-<footer class="wrap">An independent fan history project. Not affiliated with the University of Alabama or the SEC.
+<footer class="wrap sf">{FOOT_NAV}
+<p>An independent fan history project. Not affiliated with the University of Alabama or the SEC.
 Game results from James Howell's college football scores archive (1902 on) and Wikipedia season pages (1892–1901).
-Records are on-field results; Alabama's official record excludes wins later vacated or forfeited (1993, 2005–2007).
-<br><a href="/">The Crimson Ledger home</a> · <a href="/vs/">All opponents</a> · <a href="/seasons/">All seasons</a></footer>
+Records are on-field results; Alabama's official record excludes wins later vacated or forfeited (1993, 2005–2007).</p></footer>
 </body>
 </html>
 """
@@ -288,23 +306,49 @@ for i, y in enumerate(years):
 
 # ---------- hubs ----------
 opp_sorted = sorted(OPP.items(), key=lambda kv: (-len(kv[1]), kv[0]))
-cards = "".join(f'<a href="/vs/{slug(o)}/">{E(o)}<small>{rec(*wl(gs))} · {len(gs)} game{"s" if len(gs) > 1 else ""}</small></a>'
+cards = "".join(f'<a href="/vs/{slug(o)}/" data-n="{E(o.lower())}" data-g="{len(gs)}">{E(o)}<small>{rec(*wl(gs))} · {len(gs)} game{"s" if len(gs) > 1 else ""}</small></a>'
                 for o, gs in opp_sorted)
 tw, tl, tt = wl(G)
+VSJS = """<script>(()=>{const q=document.getElementById("vq"),m=document.getElementById("vm");
+function run(){const t=q.value.trim().toLowerCase(),n=+m.value;let k=0;document.querySelectorAll("#vgrid a").forEach(a=>{const ok=(!t||a.dataset.n.includes(t))&&+a.dataset.g>=n;a.hidden=!ok;if(ok)k++});
+document.getElementById("vnone").hidden=!!k;document.getElementById("vcount").textContent=k+" of "+document.querySelectorAll("#vgrid a").length}
+q.addEventListener("input",run);m.addEventListener("input",run);run()})();</script>"""
+vbody = ('<div class="pf"><input id="vq" type="search" placeholder="Find an opponent…" aria-label="Find an opponent">'
+         '<select id="vm" aria-label="Minimum meetings"><option value="1">All opponents</option><option value="5">5+ meetings</option><option value="20">20+ meetings</option></select></div>'
+         '<h2>Head-to-head records <small class="h2n" id="vcount"></small></h2>'
+         f'<div class="grid" id="vgrid">{cards}</div><p class="note" id="vnone" hidden>No opponents match.</p>' + VSJS)
 write("/vs/", page("/vs/", "Alabama Football All-Time Record vs. Every Opponent | The Crimson Ledger",
       f"Alabama's all-time head-to-head record against all {len(OPP)} opponents it has played since 1892, from Auburn and Tennessee to one-time meetings.",
       [("Home", "/")], "Every Opponent",
       f"Alabama has played {len(OPP)} different opponents since 1892, with an on-field record of {rec(tw, tl, tt)}. Sorted by how often they've met.",
-      [("Opponents", len(OPP)), ("Games", len(G)), ("On-field record", rec(tw, tl, tt))],
-      f'<h2>Head-to-head records</h2><div class="grid">{cards}</div>'))
+      [("Opponents", len(OPP)), ("Games", f"{len(G):,}"), ("On-field record", rec(tw, tl, tt))],
+      vbody))
 urls.append(("/vs/", G[-1]["d"]))
 
+def pct(w, l, t): return (w + t / 2) / ((w + l + t) or 1)
+def pf(x): return f"{x:.3f}".lstrip("0") if x < 1 else "1.000"
+x0, x1, y0, y1 = 48, 992, 150, 12
+bw = (x1 - x0) / (years[-1] - years[0] + 1)
+X = lambda y: x0 + (y - years[0]) * bw
+Y = lambda p: y0 - (y0 - y1) * p
+svg = "".join(f'<line class="gl" x1="{x0}" x2="{x1}" y1="{Y(q):.1f}" y2="{Y(q):.1f}"/><text class="ax ay" x="{x0-6}" y="{Y(q)+4:.1f}" text-anchor="end">{"0" if q == 0 else "1.000" if q == 1 else ".500"}</text>' for q in (0, .5, 1))
+svg += "".join(f'<text class="ax" x="{X(d)+bw/2:.1f}" y="{y0+18}" text-anchor="middle">{d}</text>' for d in range(1900, years[-1] + 1, 20))
+for y in years:
+    S_ = SEASONS[y]; q = pct(S_["w"], S_["l"], S_["t"])
+    svg += (f'<a href="/seasons/{y}/"><rect class="bar{" t" if y in TITLES else ""}" x="{X(y)+.6:.1f}" width="{max(bw-1.2,1):.2f}" y="{Y(q):.1f}" height="{max(y0-Y(q),1):.1f}">'
+            f'<title>{y}: {rec(S_["w"], S_["l"], S_["t"])} ({pf(q)}) · {E(S_["coach"])}{" · National title" if y in TITLES else ""}</title></rect></a>')
+chart = ('<div class="chart"><div class="legend"><span><i class="sw t"></i>National title</span><span><i class="sw r"></i>Other seasons</span>'
+         '<span class="lg">Bar height is winning percentage · tap a bar for that season</span></div>'
+         f'<div class="chartbox"><svg viewBox="0 0 1000 190" role="img" aria-label="Alabama winning percentage by season, {years[0]} to {years[-1]}">{svg}</svg></div></div>')
 decades = {}
 for y in years: decades.setdefault(y // 10 * 10, []).append(y)
-body = ""
+def post_txt(y):
+    p = SEASONS[y]["post"].strip()
+    return f" · {E(p)}" if p and p != "In progress" else ""
+body = chart
 for dcd, ys in sorted(decades.items(), reverse=True):
     body += f"<h2>{dcd}s</h2><div class=\"grid\">" + "".join(
-        f'<a href="/seasons/{y}/">{y}{" ★" if y in TITLES else ""}<small>{rec(SEASONS[y]["w"], SEASONS[y]["l"], SEASONS[y]["t"])} · {E(SEASONS[y]["coach"])}</small></a>'
+        f'<a href="/seasons/{y}/">{y}{" ★" if y in TITLES else ""}<small>{rec(SEASONS[y]["w"], SEASONS[y]["l"], SEASONS[y]["t"])} · {E(SEASONS[y]["coach"])}{post_txt(y)}</small></a>'
         for y in reversed(ys)) + "</div>"
 write("/seasons/", page("/seasons/", "Alabama Football Season-by-Season Records | The Crimson Ledger",
       f"Every Alabama football season from {years[0]} to {years[-1]}: record, coach and full schedule with results. ★ marks a claimed national championship.",
@@ -312,6 +356,28 @@ write("/seasons/", page("/seasons/", "Alabama Football Season-by-Season Records 
       f"{len(years)} seasons of Alabama football, {years[0]} to {years[-1]}. No team played in 1898, 1918 or 1943. ★ marks a national championship Alabama claims.",
       [("Seasons", len(years)), ("National titles", len(TITLES))], body))
 urls.append(("/seasons/", G[-1]["d"]))
+
+# ---------- coaches ----------
+CO = {}
+for y in years:
+    S_ = SEASONS[y]; c = CO.setdefault(S_["coach"], dict(n=S_["coach"], a=y, b=y, k=0, w=0, l=0, t=0, ti=0))
+    c["b"] = y; c["k"] += 1; c["w"] += S_["w"]; c["l"] += S_["l"]; c["t"] += S_["t"]; c["ti"] += y in TITLES
+def cspan(c): return str(c["a"]) if c["a"] == c["b"] else f"{c['a']}–{c['b']}"
+crow = "".join(
+    f'<tr><td class="num">{i}</td><td class="wrap-ok"><a href="/seasons/{c["a"]}/">{E(c["n"])}</a><small class="sub">{cspan(c)} · {c["k"]} season{"s" if c["k"] > 1 else ""}</small></td>'
+    f'<td class="num">{rec(c["w"], c["l"], c["t"])}</td><td class="num">{pf(pct(c["w"], c["l"], c["t"]))}</td><td class="num">{c["ti"] or "—"}</td></tr>'
+    for i, c in enumerate(sorted(CO.values(), key=lambda c: (-c["w"], c["a"])), 1))
+cbody = ('<h2>Every head coach, by wins</h2><div class="tbl ctbl"><table><thead><tr><th class="num">#</th><th>Coach</th><th class="num">Record</th><th class="num">Pct</th><th class="num">Titles</th></tr></thead>'
+         f'<tbody>{crow}</tbody></table></div>'
+         '<p class="note">Computed from the season-by-season records on this site (on-field results). Each name links to that coach\'s first season. '
+         'Eli Abbott coached two separate stints (1893–1895 and 1902).</p>')
+write("/coaches/", page("/coaches/", "Every Alabama Football Head Coach: Records and Titles | The Crimson Ledger",
+      f"All {len(CO)} Alabama football head coaches since 1892, with years, seasons, record, winning percentage and national titles.",
+      [("Home", "/")], "The Coaches",
+      f"{len(CO)} head coaches since 1892, from E. B. Beaumont to {E(SEASONS[years[-1]]['coach'])}. Sorted by wins.",
+      [("Head coaches", len(CO)), ("National titles", len(TITLES))], cbody))
+urls.append(("/coaches/", G[-1]["d"]))
+print(f"coaches {len(CO)}")
 
 # ---------- stories ----------
 def para(t):
@@ -609,6 +675,27 @@ write("/trivia/", page("/trivia/", "Alabama Football Trivia: The Daily 10 | The 
       [], tbody))
 urls.append(("/trivia/", datetime.date.today().isoformat()))
 print(f"trivia {len(TQ)} questions: {cats}")
+
+# ---------- /games/ and /records/: the built home page with a different set of sections shown ----------
+home = open(os.path.join(ROOT, "index.html")).read()
+assert '<body data-view="home">' in home, "rebuild index.html with tools/build_site.py first"
+VIEWS = [("games", "/games/", "The Game Book: Every Alabama Football Game Since 1892 | The Crimson Ledger",
+          f"Search all {len(G):,} Alabama football games since 1892 by year, opponent, bowl or nickname, and filter by result, site and decade."),
+         ("records", "/records/", "Alabama Football Record Book: Career, Season and Game Leaders | The Crimson Ledger",
+          "Alabama football's individual statistical leaders: career, single-season and single-game top 10s in passing, rushing, receiving, defense and kicking.")]
+DEFAULT_DESC = re.search(r'<meta name="description" content="([^"]*)">', home).group(1)
+for view, path, title, desc in VIEWS:
+    h = home.replace('<body data-view="home">', f'<body data-view="{view}">', 1)
+    h = h.replace("<title>The Crimson Ledger</title>", f"<title>{E(title)}</title>", 1)
+    h = h.replace('<meta property="og:title" content="The Crimson Ledger">', f'<meta property="og:title" content="{E(title)}">', 1)
+    h = h.replace(f'content="{DEFAULT_DESC}"', f'content="{E(desc)}"')
+    h = h.replace(f'<link rel="canonical" href="{SITE}/">', f'<link rel="canonical" href="{SITE}{path}">', 1)
+    h = h.replace(f'<meta property="og:url" content="{SITE}/">', f'<meta property="og:url" content="{SITE}{path}">', 1)
+    h = h.replace(f'<a href="{path}">', f'<a href="{path}" aria-current="page">', 1)
+    h = h.replace(f'<a class="m" href="{path}">', f'<a class="m" href="{path}" aria-current="page">', 1)
+    write(path, h)
+    urls.append((path, G[-1]["d"]))
+print("views games, records")
 
 # ---------- sitemap + robots ----------
 today = datetime.date.today().isoformat()
