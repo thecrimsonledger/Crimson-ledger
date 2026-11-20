@@ -110,6 +110,7 @@ CSS += NAV_CSS + """
 .ax{fill:var(--muted);font:11px var(--mono)}.gl{stroke:var(--line);stroke-width:1}.bar{fill:var(--crim);opacity:.75}.bar.t{fill:var(--gold);opacity:1}.chart a:hover .bar{opacity:1;stroke:var(--fg);stroke-width:1}
 @media (max-width:560px){.ax{font-size:28px}.ay{display:none}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile:last-child:nth-child(odd){grid-column:1/-1}}
 .h2n{font:600 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);margin-left:10px;vertical-align:middle}
+.upd{font:12px/1.4 var(--mono);color:var(--muted);margin:10px 0 0}
 .sub{display:block;font:12px/1.4 var(--mono);color:var(--muted);margin-top:2px}.ctbl td{vertical-align:top}
 footer.sf{border-top:1px solid var(--line);margin-top:40px}
 """
@@ -392,7 +393,8 @@ for st in STORIES:
                  f'{"at" if g["loc"]=="A" else "vs."} <a href="/vs/{slug(g["opp"])}/">{E(g["opp"])}</a> · <a href="/seasons/{g["s"]}/">The {g["s"]} season</a></div></div>')
     srcs = "".join(f'<li><a href="{E(u)}" rel="nofollow">{E(n)}</a></li>' for n, u in st.get("sources", []))
     body = (f'<p class="kicker story">{E(st["era"])}</p><article class="story">' + "".join(para(t) for t in st["body"]) + "</article>"
-            + links + (f'<div class="src"><b>Sources</b><ol>{srcs}</ol></div>' if srcs else "")
+            + links + (f'<div class="src"><b>Sources</b><ol>{srcs}</ol>'
+                       + (f'<p class="upd">Fact-checked and updated {fdate(st["updated"])}.</p>' if st.get("updated") else "") + '</div>' if srcs else "")
             + '<div class="more"><a class="cta" href="/stories/">More stories</a></div>')
     title = f"{st['title']}: {fdate(st['date']) if st.get('date') else st['era']} | The Crimson Ledger"
     write(path, page(path, title, st["dek"], [("Home", "/"), ("Stories", "/stories/")], st["title"], E(st["dek"]), st.get("tiles", []), body))
@@ -549,7 +551,8 @@ for cat in REC:
         top = rows[0]
         names = [r[1] for r in rows[1:] if r[1] != top[1]]
         if len(set(names)) < 3: continue
-        when = f"{top[3]}" + (f" vs. {top[4]}" if top[4] else "")
+        opp_txt = re.sub(r"\s*\(([^)]*)\)", r", \1", top[4])  # "Florida (SEC Championship Game)" -> "Florida, SEC Championship Game"
+        when = f"{top[3]}" + (f" vs. {opp_txt}" if top[4] else "")
         qtext = ("Who kicked the longest field goal in Alabama history?" if cat["s"] == "Longest field goal"
                  else f"Who holds Alabama's {SPAN_Q[span]} record for {cat['s'].lower()}?")
         unit = UNIT_WORD.get(cat["unit"], "")
@@ -558,6 +561,7 @@ for cat in REC:
 
 # National title seasons that ended with a bowl or playoff win
 TITLE_COACH = {int(y): c for y, c in re.findall(r'\[(\d{4}),"([A-Za-z]+)"\]', re.search(r"const TITLES=\[(.*?)\];", src).group(1))}
+TITLE_GAME_NAME = {"BCS Championship": "BCS National Championship Game", "College Football Playoff Championship": "College Football Playoff National Championship"}
 bowl_wins = [g for g in G if g["note"] and g["res"] == "W" and re.search(r"Bowl|Playoff|BCS", g["note"])]
 post_all = [g for g in G if g["note"] and re.search(r"Bowl|Playoff|BCS|Championship", g["note"]) and "SEC" not in g["note"]]
 for y in sorted(TITLES):
@@ -565,9 +569,15 @@ for y in sorted(TITLES):
     if not gs: continue
     last = gs[-1]
     if last["note"] and last["res"] == "W" and re.search(r"Bowl|Playoff|BCS|Championship", last["note"]):
-        addq("Championships", f"Alabama finished its {y} national championship season by beating which team in the {last['note']}?",
-             last["opp"], [g["opp"] for g in post_all if g["opp"] != last["opp"] and abs(g["s"] - y) <= 12],
-             f"Alabama won {score(last)} on {fdate(last['d'])}.", f"/seasons/{y}/", f"The {y} season", f"t{y}")
+        # Name the game by the date it was played: the 1979 season's Sugar Bowl was played on Jan. 1, 1980,
+        # and "the 1979 Sugar Bowl" means the Penn State game a year earlier.
+        bowl = TITLE_GAME_NAME.get(last["note"], last["note"])
+        near = {g["opp"] for g in post_all if abs(g["s"] - y) <= 1}  # never offer a neighboring title game's opponent
+        addq("Championships", f"Alabama's {y} national championship season ended with a win in the {bowl} on {fdate(last['d'])}. Who did Alabama beat?",
+             last["opp"], next(w for w in ([g["opp"] for g in post_all if g["opp"] != last["opp"] and g["opp"] not in near and abs(g["s"] - y) <= span]
+                                           for span in (12, 25, 99)) if len(set(w)) >= 3),
+             f"Alabama won {score(last)} in the {last['d'][:4]} {bowl}.",
+             f"/seasons/{y}/", f"The {y} season", f"t{y}")
 coaches = sorted(set(TITLE_COACH.values()))
 FULL = {"Wade": "Wallace Wade", "Thomas": "Frank Thomas", "Bryant": "Bear Bryant", "Stallings": "Gene Stallings", "Saban": "Nick Saban"}
 for y, c in TITLE_COACH.items():
