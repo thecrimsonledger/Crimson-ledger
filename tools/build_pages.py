@@ -52,6 +52,8 @@ def nav_for(path):
     h = NAV_HTML
     if cur: h = h.replace(f'href="{cur}"', f'href="{cur}" aria-current="page"')
     return h + NAV_JS
+NL_HTML = re.search(r"<!--NEWSLETTER:START-->\n(.*?)<!--NEWSLETTER:END-->", src, re.S).group(1)
+NL_CSS = re.search(r"/\* NEWSLETTER-CSS:START \*/\n(.*?)/\* NEWSLETTER-CSS:END \*/", src, re.S).group(1)
 FOOT_NAV = re.search(r'(<nav class="sfl".*?</nav>)', src, re.S).group(1)
 
 # ---------- page shell ----------
@@ -103,7 +105,8 @@ CSS += """
 .chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 [hidden]{display:none!important}
 """
-CSS += NAV_CSS + """
+CSS += NAV_CSS + NL_CSS + """
+.nlwrap{margin-top:48px}.nl .label{font:600 12px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase}.nl h2{border:0;padding:0;margin:6px 0 10px}
 .chart{background:var(--surface);border:1px solid var(--line);padding:16px;margin-top:28px}.chartbox{overflow-x:auto}.chartbox svg{display:block;width:100%;height:auto}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font:13px var(--mono);margin-bottom:10px}.legend .lg{color:var(--muted);font-size:12px}
 .sw{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}.sw.t{background:var(--gold)}.sw.r{background:var(--crim)}
@@ -168,6 +171,7 @@ def page(path, title, desc, crumbs, h1, lede, tiles, body):
 </div></section>
 <main class="wrap">
 {body}
+<div class="nlwrap">{NL_HTML}</div>
 </main>
 <footer class="wrap sf">{FOOT_NAV}
 <p>An independent fan history project. Not affiliated with the University of Alabama or the SEC.

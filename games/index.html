@@ -243,6 +243,23 @@ body[data-view="games"] .head::after,body[data-view="records"] .head::after{disp
 .vhead h1{font-size:clamp(44px,8vw,80px);font-weight:900;text-transform:uppercase;margin:10px 0 12px}
 .vhead .lede{max-width:60ch;margin:0;color:#CDD1D2;font-size:18px}
 .gwser{display:inline-block;margin-top:16px;font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--crim);text-decoration:none;padding:6px 0}
+/* NEWSLETTER-CSS:START */
+.nl{margin-top:16px;background:var(--board);color:var(--boardfg);border-top:4px solid var(--crim);padding:36px clamp(20px,4vw,44px);display:grid;gap:22px;grid-template-columns:1.2fr 1fr;align-items:center;border-radius:2px}
+.nl h2{font:800 clamp(32px,5vw,46px)/1 var(--display);text-transform:uppercase;margin:6px 0 10px}
+.nl h2 span{color:var(--gold)}
+.nl p{margin:0;font:17px/1.5 var(--body);color:#C9CDCD;max-width:46ch}
+.nl .label{color:var(--gold)}
+.nl form{display:flex;flex-wrap:wrap;gap:10px}
+.nl input{flex:1 1 220px;min-width:0;font:16px/1 var(--body);padding:14px 14px;border-radius:2px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);color:var(--boardfg)}
+.nl input::placeholder{color:#8C9395}
+.nl input:focus{outline:2px solid var(--gold);outline-offset:1px}
+.nl button{font:600 13px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:15px 20px;border-radius:2px;border:0;background:#9E1B32;color:#fff;cursor:pointer;transition:transform .15s}
+.nl button:hover{transform:translateY(-2px)}
+.nl button:disabled{opacity:.6;transform:none;cursor:default}
+.nl small{display:block;width:100%;font:12px/1.4 var(--mono);color:#8C9395;letter-spacing:.04em}
+.nl .ok{font:600 15px/1.5 var(--body);color:var(--gold)}
+@media (max-width:760px){.nl{grid-template-columns:1fr}}
+/* NEWSLETTER-CSS:END */
 /* SITENAV-CSS:START (build_pages.py copies this block into every other page) */
 /* site nav (same on every page) */
 .sn{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--board) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--boardfg);border-bottom:1px solid #2A2E31}
@@ -321,7 +338,7 @@ details.about p{border-left:3px solid var(--crim);padding:4px 0 4px 12px;margin:
     <div class="eyebrow"><span class="live" id="heronow"><i></i>2026 season</span><span class="label">Alabama football · Since 1892</span></div>
     <h1><span class="l1">The Crimson</span><span class="l2">Ledger</span></h1>
     <p class="lede">Every Alabama football game ever played, from the 1892 opener to last Saturday. Championship seasons, the coaches who built them, the games people still argue about, and the numbers that settle it.</p>
-    <div class="cta"><a class="p" href="/games/">Search every game</a><a class="s" href="#sb-h">Strange but true</a><button type="button" class="s app" id="getapp" hidden>Get the app</button></div>
+    <div class="cta"><a class="p" href="/games/">Search every game</a><a class="s" href="#newsletter">Free newsletter</a><button type="button" class="s app" id="getapp" hidden>Get the app</button></div>
     <p class="iostip" id="iostip" hidden>On iPhone: tap <b>Share</b> <span aria-hidden="true">⎋</span> at the bottom of Safari, then <b>Add to Home Screen</b>.</p>
     <div class="tally" id="tally"></div>
   </div>
@@ -369,6 +386,36 @@ details.about p{border-left:3px solid var(--crim);padding:4px 0 4px 12px;margin:
     <div class="head"><h2 id="sv-h">The Story Vault</h2><span class="label" id="svlabel">The stories behind the games</span></div>
     <ol class="series" id="series"></ol>
     <div class="more"><a class="btn" href="/stories/" id="svall">All stories</a></div>
+  </section>
+
+  <section aria-labelledby="nl-h" data-only="home">
+<!--NEWSLETTER:START-->
+<div class="nl" id="newsletter">
+  <div>
+    <span class="label">Free · Weekly in season</span>
+    <h2 id="nl-h">The Weekly <span>Ledger</span></h2>
+    <p>Game-week history for the next opponent, a strange-but-true stat, and this week in Alabama football history. One email, straight to your inbox.</p>
+  </div>
+  <div>
+    <form id="nlform" novalidate>
+      <input type="email" name="email" id="nlemail" placeholder="you@example.com" autocomplete="email" required aria-label="Email address">
+      <button type="submit">Sign up</button>
+      <small id="nlmsg">Free. No spam. Unsubscribe anytime.</small>
+    </form>
+    <p class="ok" id="nlok" hidden>You're in. Check your inbox and tap the confirm button to start getting The Weekly Ledger.</p>
+  </div>
+</div>
+<script>
+/* The Weekly Ledger signup: posts to Kit form 10220926 */
+(()=>{const NL={action:"https://app.kit.com/forms/10220926/subscriptions",field:"email_address"};
+const f=document.getElementById("nlform"),e=document.getElementById("nlemail"),m=document.getElementById("nlmsg"),ok=document.getElementById("nlok");
+f.addEventListener("submit",async ev=>{ev.preventDefault();const v=e.value.trim();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){m.textContent="Enter a valid email address.";e.focus();return}
+ const b=f.querySelector("button");b.disabled=true;b.textContent="Signing up…";const d=new FormData();d.append(NL.field,v);
+ try{await fetch(NL.action,{method:"POST",body:d,mode:"no-cors"});f.hidden=true;ok.hidden=false}
+ catch(_){b.disabled=false;b.textContent="Sign up";m.textContent="Couldn't reach the signup service. Try again in a minute."}});})();
+</script>
+<!--NEWSLETTER:END-->
   </section>
 
   <section aria-labelledby="ex-h" data-only="home">
